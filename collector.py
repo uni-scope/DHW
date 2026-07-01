@@ -24,6 +24,7 @@ class CollectedData:
     intro_post_user_count: int = 0
     active_user_count: int = 0
     messages: list[MessageRecord] = field(default_factory=list)
+    channel_message_counts: dict[str, int] = field(default_factory=dict)
 
 
 async def collect(config: Config) -> CollectedData:
@@ -79,17 +80,23 @@ async def _collect_with_client(
             role_granted_users.add(entry.target.id)
     data.role_granted_user_count = len(role_granted_users)
 
-    # 自己紹介チャンネル投稿者数・対象チャンネルのアクティブユーザー数/メッセージ履歴
+    # 自己紹介チャンネル投稿者数・全チャンネルのアクティブユーザー数/メッセージ履歴
     active_users: set[int] = set()
     intro_users: set[int] = set()
 
-    for channel_id in config.target_channel_ids:
-        channel = guild.get_channel(channel_id) or await client.fetch_channel(channel_id)
+    me = guild.me
+    for channel in guild.text_channels:
+        if channel.id in config.exclude_channel_ids:
+            continue
+        if not channel.permissions_for(me).read_message_history:
+            continue
+
         async for message in channel.history(limit=None, after=since, before=until, oldest_first=True):
             if message.author.bot:
                 continue
             active_users.add(message.author.id)
-            if channel_id == config.intro_channel_id:
+            data.channel_message_counts[channel.name] = data.channel_message_counts.get(channel.name, 0) + 1
+            if channel.id == config.intro_channel_id:
                 intro_users.add(message.author.id)
             data.messages.append(
                 MessageRecord(
@@ -99,15 +106,6 @@ async def _collect_with_client(
                     created_at=message.created_at,
                 )
             )
-
-    if config.intro_channel_id not in config.target_channel_ids:
-        intro_channel = guild.get_channel(config.intro_channel_id) or await client.fetch_channel(
-            config.intro_channel_id
-        )
-        async for message in intro_channel.history(limit=None, after=since, before=until, oldest_first=True):
-            if message.author.bot:
-                continue
-            intro_users.add(message.author.id)
 
     data.active_user_count = len(active_users)
     data.intro_post_user_count = len(intro_users)

@@ -23,6 +23,13 @@ def _metrics_block(data: CollectedData) -> str:
     )
 
 
+def _channel_activity_block(data: CollectedData) -> str:
+    ranked = sorted(data.channel_message_counts.items(), key=lambda kv: kv[1], reverse=True)
+    if not ranked:
+        return "（メッセージなし）"
+    return "\n".join(f"- #{name}: {count}件" for name, count in ranked)
+
+
 def generate_daily_report(client: Anthropic, config: Config, data: CollectedData) -> str:
     prompt = f"""あなたはDiscordコミュニティの運営アシスタントです。
 以下の指標データとメッセージ履歴（過去24時間分）をもとに、管理者向けの日報を作成してください。
@@ -30,11 +37,15 @@ def generate_daily_report(client: Anthropic, config: Config, data: CollectedData
 # 指標データ
 {_metrics_block(data)}
 
+# チャンネル別メッセージ件数（全件ベース、多い順）
+{_channel_activity_block(data)}
+
 # メッセージ履歴
 {_format_messages(data)}
 
 # 出力要件
 - 上記の指標データを表形式で記載する
+- 「チャンネル別メッセージ件数」を根拠に、どのチャンネルが盛り上がっていたかを明記する
 - 些末な雑談やつぶやきも含め、サーバー全体でどのようなトピックが話題になったかを簡潔にまとめる
 - 気になる動き（急な話題の盛り上がり、トラブルの兆候など）があれば指摘する
 - 全体で日本語、簡潔に（見出し＋箇条書き中心）"""

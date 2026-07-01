@@ -16,8 +16,8 @@ class Config:
     discord_token: str = field(default_factory=lambda: os.environ["DISCORD_TOKEN"])
     anthropic_api_key: str = field(default_factory=lambda: os.environ["ANTHROPIC_API_KEY"])
     guild_id: int = field(default_factory=lambda: int(os.environ["GUILD_ID"]))
-    target_channel_ids: list[int] = field(
-        default_factory=lambda: _split_ids(os.environ.get("TARGET_CHANNEL_IDS", ""))
+    exclude_channel_ids: list[int] = field(
+        default_factory=lambda: _split_ids(os.environ.get("EXCLUDE_CHANNEL_IDS", ""))
     )
     intro_channel_id: int = field(default_factory=lambda: int(os.environ["INTRO_CHANNEL_ID"]))
     timezone: ZoneInfo = field(default_factory=lambda: ZoneInfo(os.environ.get("TIMEZONE", "Asia/Tokyo")))

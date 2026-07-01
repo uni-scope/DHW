@@ -8,9 +8,13 @@ Discordサーバーの活動データを収集し、Claude APIで日報（機能
 ```bash
 pip install -r requirements.txt
 cp .env.example .env
-# .env に DISCORD_TOKEN, ANTHROPIC_API_KEY, GUILD_ID,
-# TARGET_CHANNEL_IDS, INTRO_CHANNEL_ID を設定
+# .env に DISCORD_TOKEN, ANTHROPIC_API_KEY を設定
+# GUILD_ID / INTRO_CHANNEL_ID はデフォルトで設定済み
+# 除外したいチャンネルがあれば EXCLUDE_CHANNEL_IDS に指定
 ```
+
+集計対象チャンネルはBotが閲覧できる全テキストチャンネルを自動対象とします
+（`EXCLUDE_CHANNEL_IDS` で指定したチャンネルのみ除外）。
 
 Discord Bot には以下のIntent/権限が必要です。
 - Message Content Intent
