@@ -1,0 +1,8 @@
+.env
+__pycache__/
+*.pyc
+.venv/
+venv/
+reports/
+metrics_history.csv
+metrics_graph.png
