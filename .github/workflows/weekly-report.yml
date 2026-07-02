@@ -1,10 +1,7 @@
-name: Daily community report
+name: Weekly community report
 
-# 毎日 00:00 UTC（= 09:00 JST）に前日分を集計してコミットする。
-# 手動実行(workflow_dispatch)では任意の期間を指定できる（バックフィル用）。
-#
-# 注意: schedule トリガーはデフォルトブランチ上のワークフローしか起動しない。
-# このファイルがデフォルトブランチにマージされて初めて定期実行が有効になる。
+# オンデマンド（手動）で週報を生成する。定期スケジュールはしない。
+# 対象期間は前回の週報生成時点（weekly_state.json）以降〜現在。
 #
 # 必要な設定:
 #   - Secrets:   DISCORD_TOKEN, ANTHROPIC_API_KEY
@@ -12,16 +9,14 @@ name: Daily community report
 #     未設定の場合は下記 env のデフォルト値が使われる。
 
 on:
-  schedule:
-    - cron: "0 0 * * *"
   workflow_dispatch:
     inputs:
       since:
-        description: "集計開始日 YYYY-MM-DD（省略時は前日）"
+        description: "集計開始日 YYYY-MM-DD（省略時は前回の週報生成時点）"
         required: false
         type: string
       until:
-        description: "集計終了日 YYYY-MM-DD（省略時は前日）"
+        description: "集計終了日 YYYY-MM-DD（省略時は現在）"
         required: false
         type: string
       skip_report:
@@ -34,7 +29,7 @@ permissions:
   contents: write
 
 concurrency:
-  group: daily-report
+  group: weekly-report
   cancel-in-progress: false
 
 jobs:
@@ -47,19 +42,13 @@ jobs:
         with:
           python-version: "3.11"
 
+      - name: Install Japanese font (for graph legend)
+        run: sudo apt-get update && sudo apt-get install -y fonts-ipafont-gothic
+
       - name: Install dependencies
         run: pip install -r requirements.txt
 
-      - name: Resolve target dates (JST)
-        id: dates
-        run: |
-          yesterday="$(TZ=Asia/Tokyo date -d 'yesterday' +%F)"
-          since="${{ inputs.since }}"
-          until="${{ inputs.until }}"
-          echo "since=${since:-$yesterday}" >> "$GITHUB_OUTPUT"
-          echo "until=${until:-$yesterday}" >> "$GITHUB_OUTPUT"
-
-      - name: Run agent
+      - name: Generate weekly report
         env:
           DISCORD_TOKEN: ${{ secrets.DISCORD_TOKEN }}
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
@@ -68,20 +57,20 @@ jobs:
           EXCLUDE_CHANNEL_IDS: ${{ vars.EXCLUDE_CHANNEL_IDS }}
           TIMEZONE: Asia/Tokyo
         run: |
-          python main.py \
-            --since "${{ steps.dates.outputs.since }}" \
-            --until "${{ steps.dates.outputs.until }}" \
+          python main.py --weekly \
+            ${{ inputs.since && format('--since {0}', inputs.since) || '' }} \
+            ${{ inputs.until && format('--until {0}', inputs.until) || '' }} \
             ${{ inputs.skip_report == true && '--skip-report' || '' }}
 
-      - name: Commit updated metrics
+      - name: Commit updated metrics and state
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add metrics_history.csv metrics_graph.png
+          git add metrics_history.csv metrics_graph.png weekly_state.json
           if git diff --cached --quiet; then
             echo "指標に変化がないためコミットをスキップします。"
           else
-            git commit -m "Update community metrics (${{ steps.dates.outputs.since }}..${{ steps.dates.outputs.until }})"
+            git commit -m "Update community metrics (weekly report run)"
             git push origin "HEAD:${{ github.ref_name }}"
           fi
 
@@ -89,6 +78,6 @@ jobs:
         if: ${{ inputs.skip_report != true }}
         uses: actions/upload-artifact@v4
         with:
-          name: reports-${{ steps.dates.outputs.until }}
+          name: weekly-report
           path: reports/
           if-no-files-found: ignore

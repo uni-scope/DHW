@@ -1,7 +1,15 @@
 # Discord連携型 AIライター＆コミュニティ分析エージェント
 
-Discordサーバーの活動データを収集し、Claude APIで日報（機能A）・note向け記事（機能B）を生成し、
-指標の推移をCSV蓄積・グラフ化（機能C）するスクリプト群。
+Discordサーバーの活動データを収集し、Claude APIで週報（管理者向け）・note向け記事を生成し、
+指標の推移をCSV蓄積・グラフ化するスクリプト群。
+
+週報は**オンデマンド（依頼時）**に生成し、以下を含みます。
+- **ユーザー数の推移**（過去からの蓄積。週次集計＋推移グラフ）
+- **チャンネルの盛り上がり**（前回の週報生成時点以降の書き込み数 上位3〜5チャンネルと要約）
+- **イベントの立ち上がり・実施状況**（Discordスケジュールイベント）
+
+> ボイスチャットの利用状況は対象外です。Discordには過去のVCセッションを返すAPIが無く、
+> 取得するにはBotを常時起動して `voice_state_update` を記録し続ける必要があるためです。
 
 ## セットアップ
 
@@ -21,57 +29,56 @@ Discord Bot には以下のIntent/権限が必要です。
 - Server Members Intent
 - View Audit Log 権限
 
-## 実行
+## 週報の生成（オンデマンド）
 
 ```bash
-python main.py                                   # 当日分を集計
-python main.py --since 2026-06-04                # 6/4〜当日を日別に集計
-python main.py --since 2026-06-04 --until 2026-06-30   # 期間指定
-python main.py --since 2026-06-04 --skip-report  # 指標のみ（Claude API呼び出しなし）
+python main.py --weekly                 # 前回の週報生成時点〜現在を集計して週報を生成
+python main.py --weekly --skip-report   # 指標のみ更新（Claude API呼び出しなし）
+python main.py --weekly --since 2026-06-25 --until 2026-07-02   # 期間を明示指定
 ```
 
-集計期間は `config.timezone`（既定 Asia/Tokyo）のカレンダー日で解釈し、両端を含みます。
-`--since`/`--until` を省略すると当日1日分を対象にします。
+`--weekly` は、前回の週報生成時点（`weekly_state.json` に記録）以降〜現在を対象にします。
+初回など記録が無い場合は直近7日間を対象にします。生成が成功すると `weekly_state.json` を更新します。
 
-実行すると以下が生成されます。
-- `reports/YYYY-MM-DD_daily.md`（管理者向けレポート。ファイル名は期間の最終日）
+- 「ユーザー数の推移」は `metrics_history.csv` の**全履歴**（週次集計＋グラフ）を用います。
+- 「チャンネルの盛り上がり」「イベント」は**前回の週報生成時点以降**を対象にします。
+
+生成物:
+- `reports/YYYY-MM-DD_weekly.md`（管理者向け週報。ファイル名は対象期間の最終日）
 - `reports/YYYY-MM-DD_note.md`（note向け記事）
 - `metrics_history.csv`（指標を**1日1行**で蓄積。同じ日付は上書き）
-- `metrics_graph.png`（指標推移グラフ）
+- `metrics_graph.png`（指標推移グラフ。**凡例・軸ラベルは日本語**）
+- `weekly_state.json`（前回の週報生成時点）
 
-`metrics_history.csv` と `metrics_graph.png` はリポジトリで追跡し、実行のたびに更新・蓄積されます。
+`metrics_history.csv` / `metrics_graph.png` / `weekly_state.json` はリポジトリで追跡し、実行のたびに更新・蓄積されます。
 
-### 過去データのバックフィル
+> **グラフの日本語表示**: 日本語対応フォント（例: IPAGothic / Noto Sans CJK JP）が必要です。
+> 見つからない場合は凡例が豆腐（□）になります。Ubuntu例: `sudo apt-get install -y fonts-ipafont-gothic`
 
-`--since` に過去日を指定すると、その日から当日までを1日ずつ集計し、CSV/グラフに日別の推移が作られます。
+### 指標だけのバックフィル
+
+推移データを過去から埋めたい場合は、`--weekly` なしで期間を指定すると1日ずつ集計します。
 
 ```bash
-python main.py --since 2026-06-04 --until 2026-07-02
+python main.py --since 2026-06-04 --until 2026-07-02 --skip-report
 ```
 
 > **注意（集計の限界）**: 新規参加者数は「現在サーバーに在籍しているメンバーの参加日時」から算出するため、
-> 期間中に参加後すぐ退出したメンバーは含まれません。また、ロール付与数はDiscordの監査ログ保持期間（約90日）内でのみ遡れます。
+> 期間中に参加後すぐ退出したメンバーは含まれません。ロール付与数・イベントの立ち上がりはDiscordの監査ログ保持期間（約90日）内でのみ遡れます。
+> ボイスチャットの履歴は取得できません（上記参照）。
 
-## 定期実行（GitHub Actions）
+## オンデマンド実行（GitHub Actions）
 
-`.github/workflows/daily-report.yml` により、毎日 00:00 UTC（09:00 JST）に前日分を集計し、
-`metrics_history.csv` と `metrics_graph.png` をリポジトリへコミットします。レポート（`reports/`）はワークフローのArtifactとして取得できます。
+`.github/workflows/weekly-report.yml` は**手動実行（`workflow_dispatch`）専用**です（定期スケジュールはしません）。
+実行すると週報を生成し、`metrics_history.csv` / `metrics_graph.png` / `weekly_state.json` をリポジトリへコミットし、
+週報（`reports/`）をArtifactとして取得できます。
 
 セットアップ:
 1. リポジトリの **Secrets** に `DISCORD_TOKEN` と `ANTHROPIC_API_KEY` を登録
 2. （任意）**Variables** に `GUILD_ID` / `INTRO_CHANNEL_ID` / `EXCLUDE_CHANNEL_IDS` を登録（未設定時はワークフロー内の既定値を使用）
-3. ワークフローを**デフォルトブランチ**に置く（`schedule` トリガーはデフォルトブランチのワークフローのみ起動するため）
-
-手動実行（`workflow_dispatch`）では `since`/`until`/`skip_report` を指定でき、バックフィルにも利用できます。
-
-cron/タスクスケジューラで運用する場合は、日次で前日を指定して呼び出してください。
-
-```bash
-# 例: 毎日 09:05 JST に前日分を集計
-5 9 * * * cd /path/to/repo && python main.py --since "$(date -d yesterday +\%F)" --until "$(date -d yesterday +\%F)"
-```
+3. Actions画面から「Weekly community report」を実行（`since`/`until`/`skip_report` を任意指定可）
 
 ## モデル使い分け
 
-- 機能A（日報データ整形・要約）: Haiku（トークン抑制のため）
-- 機能B（note記事執筆）: Sonnet
+- 週報（推移・チャンネル・イベントの分析）: Sonnet
+- note記事執筆: Sonnet

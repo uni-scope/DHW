@@ -1,6 +1,7 @@
 import matplotlib
 
 matplotlib.use("Agg")
+import matplotlib.font_manager as fm
 import matplotlib.pyplot as plt
 import pandas as pd
 
@@ -13,6 +14,39 @@ METRIC_COLUMNS = [
     "intro_post_user_count",
     "active_user_count",
 ]
+
+# グラフ凡例（日本語）
+METRIC_LABELS_JA = {
+    "new_member_count": "新規参加者数",
+    "role_granted_user_count": "ロール付与数",
+    "intro_post_user_count": "自己紹介投稿者数",
+    "active_user_count": "アクティブユーザー数",
+}
+
+# 日本語表示に使えるフォント候補（先に見つかったものを使用）
+_JP_FONT_CANDIDATES = [
+    "Noto Sans CJK JP",
+    "Noto Sans JP",
+    "IPAexGothic",
+    "IPAGothic",
+    "IPAPGothic",
+    "TakaoGothic",
+    "VL Gothic",
+    "Yu Gothic",
+    "Meiryo",
+    "MS Gothic",
+    "Hiragino Sans",
+]
+
+
+def _configure_japanese_font() -> None:
+    available = {f.name for f in fm.fontManager.ttflist}
+    for name in _JP_FONT_CANDIDATES:
+        if name in available:
+            plt.rcParams["font.family"] = name
+            break
+    # マイナス記号が豆腐になるのを防ぐ
+    plt.rcParams["axes.unicode_minus"] = False
 
 
 def append_metrics(config: Config, data: CollectedData) -> pd.DataFrame:
@@ -42,14 +76,15 @@ def append_metrics(config: Config, data: CollectedData) -> pd.DataFrame:
 
 
 def render_graph(config: Config, history: pd.DataFrame) -> None:
+    _configure_japanese_font()
     fig, ax = plt.subplots(figsize=(10, 6))
     dates = pd.to_datetime(history["date"])
     for column in METRIC_COLUMNS:
-        ax.plot(dates, history[column], marker="o", label=column)
+        ax.plot(dates, history[column], marker="o", label=METRIC_LABELS_JA[column])
 
-    ax.set_title("Community Metrics Trend")
-    ax.set_xlabel("Date")
-    ax.set_ylabel("Count")
+    ax.set_title("コミュニティ指標の推移")
+    ax.set_xlabel("日付")
+    ax.set_ylabel("人数・件数")
     ax.legend()
     fig.autofmt_xdate()
     fig.tight_layout()

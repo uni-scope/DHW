@@ -1,12 +1,15 @@
-from datetime import timedelta
+from datetime import datetime, timedelta, timezone
 
+import pandas as pd
 from anthropic import Anthropic
 from anthropic.types import Message
 
 from collector import CollectedData
 from config import Config
+from metrics import METRIC_COLUMNS, METRIC_LABELS_JA
 
 MAX_MESSAGES_IN_PROMPT = 800
+TOP_CHANNELS = 5  # チャンネルの盛り上がり上位表示数（3〜5）
 
 
 def _extract_text(message: Message) -> str:
@@ -59,37 +62,96 @@ def _metrics_block(data: CollectedData) -> str:
     )
 
 
-def _channel_activity_block(data: CollectedData) -> str:
-    ranked = sorted(data.channel_message_counts.items(), key=lambda kv: kv[1], reverse=True)
+def _channel_top_block(data: CollectedData, top_n: int = TOP_CHANNELS) -> str:
+    ranked = sorted(
+        ((name, count) for name, count in data.channel_message_counts.items() if count > 0),
+        key=lambda kv: kv[1],
+        reverse=True,
+    )[:top_n]
     if not ranked:
-        return "（メッセージなし）"
+        return "（対象期間に書き込みはありませんでした）"
     return "\n".join(f"- #{name}: {count}件" for name, count in ranked)
 
 
-def generate_daily_report(client: Anthropic, config: Config, data: CollectedData) -> str:
+def _weekly_trend_block(history: pd.DataFrame, weeks: int = 8) -> str:
+    if history is None or history.empty:
+        return "（推移データがまだありません）"
+    df = history.copy()
+    df["date"] = pd.to_datetime(df["date"])
+    df = df.sort_values("date")
+    iso = df["date"].dt.isocalendar()
+    df["week"] = iso["year"].astype(str) + "-W" + iso["week"].astype(int).astype(str).str.zfill(2)
+    agg = df.groupby("week")[METRIC_COLUMNS].sum().tail(weeks)
+
+    header = "週 | " + " | ".join(METRIC_LABELS_JA[c] for c in METRIC_COLUMNS)
+    rows = [header]
+    for week, row in agg.iterrows():
+        rows.append(f"{week} | " + " | ".join(str(int(row[c])) for c in METRIC_COLUMNS))
+    return "\n".join(rows)
+
+
+def _events_block(config: Config, data: CollectedData) -> str:
+    if not data.events:
+        return "（登録されているイベントはありません）"
+    tz = config.timezone
+    epoch = datetime.min.replace(tzinfo=timezone.utc)
+    lines = []
+    for ev in sorted(data.events, key=lambda e: e.created_at or e.scheduled_start or epoch):
+        parts = [f"- {ev.name}（状態: {ev.status}"]
+        if ev.created_at:
+            parts.append(f", 作成: {ev.created_at.astimezone(tz):%Y-%m-%d %H:%M}")
+        if ev.scheduled_start:
+            parts.append(f", 開催予定: {ev.scheduled_start.astimezone(tz):%Y-%m-%d %H:%M}")
+        if ev.user_count is not None:
+            parts.append(f", 興味あり: {ev.user_count}人")
+        if ev.location:
+            parts.append(f", 場所: {ev.location}")
+        if ev.created_in_period:
+            parts.append(", ★今回の対象期間に立ち上げ")
+        parts.append("）")
+        lines.append("".join(parts))
+    return "\n".join(lines)
+
+
+def generate_weekly_report(
+    client: Anthropic, config: Config, data: CollectedData, history: pd.DataFrame
+) -> str:
     period = _period_label(config, data)
     prompt = f"""あなたはDiscordコミュニティの運営アシスタントです。
-以下の指標データとメッセージ履歴（対象期間: {period}）をもとに、管理者向けのレポートを作成してください。
+以下のデータをもとに、管理者向けの「週報」をMarkdownで作成してください。
+対象期間は前回の週報生成時点以降（{period}）です。
 
-# 指標データ（期間合計）
+# 1. ユーザー数の推移（週次集計・直近）
+{_weekly_trend_block(history)}
+
+（参考）今回の対象期間の合計:
 {_metrics_block(data)}
 
-# チャンネル別メッセージ件数（全件ベース、多い順）
-{_channel_activity_block(data)}
+# 2. チャンネルの盛り上がり（対象期間の書き込み数・多い順）
+{_channel_top_block(data)}
 
-# メッセージ履歴
+# 3. 登録イベント（立ち上がり・実施状況）
+{_events_block(config, data)}
+
+# 対象期間のメッセージ履歴（トピック要約の材料）
 {_format_messages(config, data)}
 
-# 出力要件
-- 上記の指標データを表形式で記載する
-- 「チャンネル別メッセージ件数」を根拠に、どのチャンネルが盛り上がっていたかを明記する
-- 些末な雑談やつぶやきも含め、サーバー全体でどのようなトピックが話題になったかを簡潔にまとめる
-- 気になる動き（急な話題の盛り上がり、トラブルの兆候など）があれば指摘する
-- 全体で日本語、簡潔に（見出し＋箇条書き中心）"""
+# 出力要件（Markdown・日本語・見出し＋箇条書き中心）
+## ユーザー数の推移
+- 上記の週次集計をもとに、参加者数・アクティブ数などの増減トレンドを簡潔に述べる
+## チャンネルの盛り上がり
+- 書き込み数の多い上位3〜5チャンネルを挙げ、各チャンネルで何が話題だったかをメッセージ履歴を根拠に1〜2行で要約する
+## イベント
+- 上記「登録イベント」をもとに、対象期間に立ち上がったイベントと、各イベントの実施状況（開催予定/開催中/終了など）をまとめる
+- 該当が無ければ「対象期間に新規イベントはありませんでした」とする
+
+制約:
+- 与えられたデータに無い数値・イベント・チャンネルを創作しないこと
+- ボイスチャットについては本レポートの対象外"""
 
     message = client.messages.create(
-        model=config.haiku_model,
-        max_tokens=1500,
+        model=config.sonnet_model,
+        max_tokens=2500,
         messages=[{"role": "user", "content": prompt}],
     )
     return _extract_text(message)
