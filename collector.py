@@ -1,4 +1,5 @@
 import asyncio
+import os
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta, timezone
 
@@ -34,7 +35,10 @@ async def collect(config: Config) -> CollectedData:
     intents.messages = True
     intents.message_content = True
 
-    client = discord.Client(intents=intents)
+    # discord.py's aiohttp session ignores HTTPS_PROXY unless we pass it
+    # explicitly; the proxy is applied to both the REST and gateway connections.
+    proxy = os.environ.get("HTTPS_PROXY") or os.environ.get("https_proxy") or None
+    client = discord.Client(intents=intents, proxy=proxy)
     result: CollectedData = None  # type: ignore[assignment]
     error: BaseException | None = None
 

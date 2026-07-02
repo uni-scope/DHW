@@ -1,9 +1,20 @@
 from anthropic import Anthropic
+from anthropic.types import Message
 
 from collector import CollectedData
 from config import Config
 
 MAX_MESSAGES_IN_PROMPT = 800
+
+
+def _extract_text(message: Message) -> str:
+    """Concatenate the text of all text blocks in the response.
+
+    The response may include non-text blocks (e.g. thinking blocks) before the
+    text, so we cannot assume ``content[0]`` is the answer.
+    """
+    parts = [block.text for block in message.content if getattr(block, "type", None) == "text"]
+    return "\n".join(parts).strip()
 
 
 def _format_messages(data: CollectedData) -> str:
@@ -55,7 +66,7 @@ def generate_daily_report(client: Anthropic, config: Config, data: CollectedData
         max_tokens=1500,
         messages=[{"role": "user", "content": prompt}],
     )
-    return message.content[0].text
+    return _extract_text(message)
 
 
 def generate_note_article(client: Anthropic, config: Config, data: CollectedData) -> str:
@@ -78,4 +89,4 @@ def generate_note_article(client: Anthropic, config: Config, data: CollectedData
         max_tokens=2000,
         messages=[{"role": "user", "content": prompt}],
     )
-    return message.content[0].text
+    return _extract_text(message)
