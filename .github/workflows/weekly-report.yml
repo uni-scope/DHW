@@ -62,6 +62,25 @@ jobs:
             ${{ inputs.until && format('--until {0}', inputs.until) || '' }} \
             ${{ inputs.skip_report == true && '--skip-report' || '' }}
 
+      - name: Render report to run summary
+        if: ${{ inputs.skip_report != true }}
+        run: |
+          weekly=$(ls -t reports/*_weekly.md 2>/dev/null | head -1)
+          note=$(ls -t reports/*_note.md 2>/dev/null | head -1)
+          if [ -n "$weekly" ]; then
+            {
+              echo "## 📋 週報（$(basename "$weekly")）"
+              echo ""
+              cat "$weekly"
+              echo ""
+              echo "---"
+              echo ""
+              echo "## 📝 note記事（$(basename "$note")）"
+              echo ""
+              [ -n "$note" ] && cat "$note"
+            } >> "$GITHUB_STEP_SUMMARY"
+          fi
+
       - name: Commit updated metrics and state
         run: |
           git config user.name "github-actions[bot]"
