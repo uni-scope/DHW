@@ -1,5 +1,4 @@
 import argparse
-import json
 import os
 from datetime import date, datetime, time, timedelta
 
@@ -38,28 +37,14 @@ def _parse_args() -> argparse.Namespace:
     return parser.parse_args()
 
 
-def _load_last_report_at(config: Config, tz) -> datetime | None:
-    try:
-        with open(config.state_path, encoding="utf-8") as f:
-            raw = json.load(f).get("last_report_at")
-    except (FileNotFoundError, json.JSONDecodeError):
-        return None
-    if not raw:
-        return None
-    dt = datetime.fromisoformat(raw)
-    return dt.replace(tzinfo=tz) if dt.tzinfo is None else dt
-
-
-def _save_last_report_at(config: Config, dt: datetime) -> None:
-    with open(config.state_path, "w", encoding="utf-8") as f:
-        json.dump({"last_report_at": dt.isoformat()}, f, ensure_ascii=False, indent=2)
+WEEKLY_WINDOW_DAYS = 7
 
 
 def _resolve_period(config: Config, args: argparse.Namespace) -> tuple[datetime, datetime, datetime]:
     """(collect_since, until, analysis_since) を返す。
 
     - collect_since: 日別指標を完全なカレンダー日で取り直すための収集開始（0時に丸める）
-    - analysis_since: チャンネル/イベント分析の起点（前回の週報生成時点）
+    - analysis_since: チャンネル/イベント分析の起点
     """
     tz = config.timezone
     now = datetime.now(tz)
@@ -69,12 +54,12 @@ def _resolve_period(config: Config, args: argparse.Namespace) -> tuple[datetime,
         return min(end, now)
 
     if args.weekly:
+        # 週報の対象期間は「生成日から遡って1週間」（until から7日前まで）
+        until = _end_of(date.fromisoformat(args.until)) if args.until else now
         if args.since:
             analysis_since = datetime.combine(date.fromisoformat(args.since), time.min, tzinfo=tz)
         else:
-            last = _load_last_report_at(config, tz)
-            analysis_since = last if last is not None else now - timedelta(days=7)
-        until = _end_of(date.fromisoformat(args.until)) if args.until else now
+            analysis_since = until - timedelta(days=WEEKLY_WINDOW_DAYS)
         # 分析起点の「その日の0時」から収集し、日別指標は完全日で上書きする
         collect_since = datetime.combine(analysis_since.astimezone(tz).date(), time.min, tzinfo=tz)
         return collect_since, until, analysis_since
@@ -126,11 +111,6 @@ def main() -> None:
 
     print(f"週報を出力しました: {weekly_path}")
     print(f"note記事を出力しました: {note_path}")
-
-    # 週報を生成したら「前回生成時点」を更新する
-    if args.weekly:
-        _save_last_report_at(config, until)
-        print(f"週報の生成時点を記録しました: {config.state_path}")
 
 
 if __name__ == "__main__":

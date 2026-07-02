@@ -28,5 +28,3 @@ class Config:
     metrics_graph_path: str = field(
         default_factory=lambda: os.environ.get("METRICS_GRAPH_PATH", "metrics_graph.png")
     )
-    # 週報の「前回生成時点」を記録する状態ファイル
-    state_path: str = field(default_factory=lambda: os.environ.get("STATE_PATH", "weekly_state.json"))

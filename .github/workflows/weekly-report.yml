@@ -1,7 +1,7 @@
 name: Weekly community report
 
 # オンデマンド（手動）で週報を生成する。定期スケジュールはしない。
-# 対象期間は前回の週報生成時点（weekly_state.json）以降〜現在。
+# 対象期間は「生成日から遡って1週間」（既定）。since/until で明示指定も可能。
 #
 # 必要な設定:
 #   - Secrets:   DISCORD_TOKEN, ANTHROPIC_API_KEY
@@ -85,7 +85,7 @@ jobs:
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add metrics_history.csv metrics_graph.png weekly_state.json
+          git add metrics_history.csv metrics_graph.png
           if git diff --cached --quiet; then
             echo "指標に変化がないためコミットをスキップします。"
           else

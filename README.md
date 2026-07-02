@@ -32,25 +32,23 @@ Discord Bot には以下のIntent/権限が必要です。
 ## 週報の生成（オンデマンド）
 
 ```bash
-python main.py --weekly                 # 前回の週報生成時点〜現在を集計して週報を生成
+python main.py --weekly                 # 生成日から遡って1週間を集計して週報を生成
 python main.py --weekly --skip-report   # 指標のみ更新（Claude API呼び出しなし）
 python main.py --weekly --since 2026-06-25 --until 2026-07-02   # 期間を明示指定
 ```
 
-`--weekly` は、前回の週報生成時点（`weekly_state.json` に記録）以降〜現在を対象にします。
-初回など記録が無い場合は直近7日間を対象にします。生成が成功すると `weekly_state.json` を更新します。
+`--weekly` は、**生成日から遡って1週間**（既定7日間）を対象にします。`--since`/`--until` で期間を明示指定もできます。
 
 - 「ユーザー数の推移」は `metrics_history.csv` の**全履歴**（週次集計＋グラフ）を用います。
-- 「チャンネルの盛り上がり」「イベント」は**前回の週報生成時点以降**を対象にします。
+- 「チャンネルの盛り上がり」「イベント」は**対象期間（直近1週間）**を対象にします。
 
 生成物:
 - `reports/YYYY-MM-DD_weekly.md`（管理者向け週報。ファイル名は対象期間の最終日）
 - `reports/YYYY-MM-DD_note.md`（note向け記事）
 - `metrics_history.csv`（指標を**1日1行**で蓄積。同じ日付は上書き）
 - `metrics_graph.png`（指標推移グラフ。**凡例・軸ラベルは日本語**）
-- `weekly_state.json`（前回の週報生成時点）
 
-`metrics_history.csv` / `metrics_graph.png` / `weekly_state.json` はリポジトリで追跡し、実行のたびに更新・蓄積されます。
+`metrics_history.csv` / `metrics_graph.png` はリポジトリで追跡し、実行のたびに更新・蓄積されます。
 
 > **グラフの日本語表示**: 日本語対応フォント（例: IPAGothic / Noto Sans CJK JP）が必要です。
 > 見つからない場合は凡例が豆腐（□）になります。Ubuntu例: `sudo apt-get install -y fonts-ipafont-gothic`
