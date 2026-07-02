@@ -1,3 +1,5 @@
+from datetime import timedelta
+
 from anthropic import Anthropic
 from anthropic.types import Message
 
@@ -17,10 +19,33 @@ def _extract_text(message: Message) -> str:
     return "\n".join(parts).strip()
 
 
-def _format_messages(data: CollectedData) -> str:
+def _period_bounds(config: Config, data: CollectedData) -> tuple:
+    """対象期間の最初の日と最後の日（含む）を返す。
+
+    period_end は排他的上限なので、直前の瞬間が属する日を最終日とする。
+    """
+    tz = config.timezone
+    first = data.period_start.astimezone(tz).date()
+    last = (data.period_end - timedelta(microseconds=1)).astimezone(tz).date()
+    return first, last
+
+
+def _period_label(config: Config, data: CollectedData) -> str:
+    first, last = _period_bounds(config, data)
+    if first == last:
+        return first.strftime("%Y-%m-%d")
+    return f"{first:%Y-%m-%d}〜{last:%Y-%m-%d}"
+
+
+def _format_messages(config: Config, data: CollectedData) -> str:
+    tz = config.timezone
+    # 期間が複数日にまたがる場合は日付も表示する
+    first, last = _period_bounds(config, data)
+    multi_day = first != last
+    fmt = "%m-%d %H:%M" if multi_day else "%H:%M"
     lines = []
     for msg in data.messages[:MAX_MESSAGES_IN_PROMPT]:
-        ts = msg.created_at.strftime("%H:%M")
+        ts = msg.created_at.astimezone(tz).strftime(fmt)
         lines.append(f"[{ts}] #{msg.channel_name} {msg.author_name}: {msg.content}")
     return "\n".join(lines)
 
@@ -42,17 +67,18 @@ def _channel_activity_block(data: CollectedData) -> str:
 
 
 def generate_daily_report(client: Anthropic, config: Config, data: CollectedData) -> str:
+    period = _period_label(config, data)
     prompt = f"""あなたはDiscordコミュニティの運営アシスタントです。
-以下の指標データとメッセージ履歴（過去24時間分）をもとに、管理者向けの日報を作成してください。
+以下の指標データとメッセージ履歴（対象期間: {period}）をもとに、管理者向けのレポートを作成してください。
 
-# 指標データ
+# 指標データ（期間合計）
 {_metrics_block(data)}
 
 # チャンネル別メッセージ件数（全件ベース、多い順）
 {_channel_activity_block(data)}
 
 # メッセージ履歴
-{_format_messages(data)}
+{_format_messages(config, data)}
 
 # 出力要件
 - 上記の指標データを表形式で記載する
@@ -70,19 +96,20 @@ def generate_daily_report(client: Anthropic, config: Config, data: CollectedData
 
 
 def generate_note_article(client: Anthropic, config: Config, data: CollectedData) -> str:
+    period = _period_label(config, data)
     prompt = f"""あなたはコミュニティの様子を外部向けに発信するライターです。
-以下のメッセージ履歴（過去24時間分）から、些末な雑談やノイズを除外し、
+以下のメッセージ履歴（対象期間: {period}）から、些末な雑談やノイズを除外し、
 特定のイベント・トレンド・重要な気づきにフォーカスしたnote記事をMarkdown形式で書いてください。
 
 # メッセージ履歴
-{_format_messages(data)}
+{_format_messages(config, data)}
 
 # 出力要件
 - Markdown形式（タイトルは # 見出し）
 - 外部の読者にも伝わるように、文脈や背景を補いながら書く
 - 個人が特定されすぎないよう、必要に応じて表現を一般化してよい
 - 雑談やノイズは取り上げず、記事になりうるトピックのみ扱う
-- トピックが特になければ「本日は特筆すべきイベントはありませんでした」と一言で終えてよい"""
+- トピックが特になければ「対象期間中に特筆すべきイベントはありませんでした」と一言で終えてよい"""
 
     message = client.messages.create(
         model=config.sonnet_model,

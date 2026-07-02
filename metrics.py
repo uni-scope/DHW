@@ -1,5 +1,3 @@
-from datetime import datetime
-
 import matplotlib
 
 matplotlib.use("Agg")
@@ -17,23 +15,28 @@ METRIC_COLUMNS = [
 ]
 
 
-def append_metrics(config: Config, data: CollectedData, run_date: datetime) -> pd.DataFrame:
-    row = {
-        "date": run_date.strftime("%Y-%m-%d"),
-        "new_member_count": data.new_member_count,
-        "role_granted_user_count": data.role_granted_user_count,
-        "intro_post_user_count": data.intro_post_user_count,
-        "active_user_count": data.active_user_count,
-    }
+def append_metrics(config: Config, data: CollectedData) -> pd.DataFrame:
+    rows = [
+        {
+            "date": m.date,
+            "new_member_count": m.new_member_count,
+            "role_granted_user_count": m.role_granted_user_count,
+            "intro_post_user_count": m.intro_post_user_count,
+            "active_user_count": m.active_user_count,
+        }
+        for m in data.daily_metrics
+    ]
 
     try:
-        history = pd.read_csv(config.metrics_csv_path)
+        history = pd.read_csv(config.metrics_csv_path, dtype={"date": str})
     except FileNotFoundError:
         history = pd.DataFrame(columns=["date", *METRIC_COLUMNS])
 
-    history = history[history["date"] != row["date"]]
-    history = pd.concat([history, pd.DataFrame([row])], ignore_index=True)
-    history = history.sort_values("date")
+    # 今回集計した日付は既存行を上書き（同日再実行でも重複しない）
+    new_dates = {row["date"] for row in rows}
+    history = history[~history["date"].isin(new_dates)]
+    history = pd.concat([history, pd.DataFrame(rows)], ignore_index=True)
+    history = history.sort_values("date").reset_index(drop=True)
     history.to_csv(config.metrics_csv_path, index=False)
     return history
 

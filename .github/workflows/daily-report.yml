@@ -1,0 +1,94 @@
+name: Daily community report
+
+# 毎日 00:00 UTC（= 09:00 JST）に前日分を集計してコミットする。
+# 手動実行(workflow_dispatch)では任意の期間を指定できる（バックフィル用）。
+#
+# 注意: schedule トリガーはデフォルトブランチ上のワークフローしか起動しない。
+# このファイルがデフォルトブランチにマージされて初めて定期実行が有効になる。
+#
+# 必要な設定:
+#   - Secrets:   DISCORD_TOKEN, ANTHROPIC_API_KEY
+#   - (任意) Variables: GUILD_ID, INTRO_CHANNEL_ID, EXCLUDE_CHANNEL_IDS
+#     未設定の場合は下記 env のデフォルト値が使われる。
+
+on:
+  schedule:
+    - cron: "0 0 * * *"
+  workflow_dispatch:
+    inputs:
+      since:
+        description: "集計開始日 YYYY-MM-DD（省略時は前日）"
+        required: false
+        type: string
+      until:
+        description: "集計終了日 YYYY-MM-DD（省略時は前日）"
+        required: false
+        type: string
+      skip_report:
+        description: "レポート生成をスキップ（指標のみ更新）"
+        required: false
+        type: boolean
+        default: false
+
+permissions:
+  contents: write
+
+concurrency:
+  group: daily-report
+  cancel-in-progress: false
+
+jobs:
+  report:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Resolve target dates (JST)
+        id: dates
+        run: |
+          yesterday="$(TZ=Asia/Tokyo date -d 'yesterday' +%F)"
+          since="${{ inputs.since }}"
+          until="${{ inputs.until }}"
+          echo "since=${since:-$yesterday}" >> "$GITHUB_OUTPUT"
+          echo "until=${until:-$yesterday}" >> "$GITHUB_OUTPUT"
+
+      - name: Run agent
+        env:
+          DISCORD_TOKEN: ${{ secrets.DISCORD_TOKEN }}
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          GUILD_ID: ${{ vars.GUILD_ID || '1504714750557294682' }}
+          INTRO_CHANNEL_ID: ${{ vars.INTRO_CHANNEL_ID || '1509451256962486385' }}
+          EXCLUDE_CHANNEL_IDS: ${{ vars.EXCLUDE_CHANNEL_IDS }}
+          TIMEZONE: Asia/Tokyo
+        run: |
+          python main.py \
+            --since "${{ steps.dates.outputs.since }}" \
+            --until "${{ steps.dates.outputs.until }}" \
+            ${{ inputs.skip_report == true && '--skip-report' || '' }}
+
+      - name: Commit updated metrics
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add metrics_history.csv metrics_graph.png
+          if git diff --cached --quiet; then
+            echo "指標に変化がないためコミットをスキップします。"
+          else
+            git commit -m "Update community metrics (${{ steps.dates.outputs.since }}..${{ steps.dates.outputs.until }})"
+            git push origin "HEAD:${{ github.ref_name }}"
+          fi
+
+      - name: Upload reports
+        if: ${{ inputs.skip_report != true }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: reports-${{ steps.dates.outputs.until }}
+          path: reports/
+          if-no-files-found: ignore
