@@ -72,8 +72,8 @@ python main.py --since 2026-06-04 --until 2026-07-02 --skip-report
 週報（`reports/`）をArtifactとして取得できます。
 
 セットアップ:
-1. リポジトリの **Secrets** に `DISCORD_TOKEN` と `ANTHROPIC_API_KEY` を登録
-2. （任意）**Variables** に `GUILD_ID` / `INTRO_CHANNEL_ID` / `EXCLUDE_CHANNEL_IDS` を登録（未設定時はワークフロー内の既定値を使用）
+1. リポジトリの **Secrets** に `DISCORD_TOKEN` / `ANTHROPIC_API_KEY` / `GUILD_ID` / `INTRO_CHANNEL_ID` を登録
+2. （任意）**Variables** に `EXCLUDE_CHANNEL_IDS` を登録（除外チャンネルがある場合のみ）
 3. Actions画面から「Weekly community report」を実行（`since`/`until`/`skip_report` を任意指定可）
 
 ## ダッシュボード（GitHub Pages）

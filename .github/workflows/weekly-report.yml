@@ -4,9 +4,8 @@ name: Weekly community report
 # 対象期間は「生成日から遡って1週間」（既定）。since/until で明示指定も可能。
 #
 # 必要な設定:
-#   - Secrets:   DISCORD_TOKEN, ANTHROPIC_API_KEY
-#   - (任意) Variables: GUILD_ID, INTRO_CHANNEL_ID, EXCLUDE_CHANNEL_IDS
-#     未設定の場合は下記 env のデフォルト値が使われる。
+#   - Secrets:   DISCORD_TOKEN, ANTHROPIC_API_KEY, GUILD_ID, INTRO_CHANNEL_ID
+#   - (任意) Variables: EXCLUDE_CHANNEL_IDS
 
 on:
   workflow_dispatch:
@@ -52,8 +51,8 @@ jobs:
         env:
           DISCORD_TOKEN: ${{ secrets.DISCORD_TOKEN }}
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
-          GUILD_ID: ${{ vars.GUILD_ID || '1504714750557294682' }}
-          INTRO_CHANNEL_ID: ${{ vars.INTRO_CHANNEL_ID || '1509451256962486385' }}
+          GUILD_ID: ${{ secrets.GUILD_ID }}
+          INTRO_CHANNEL_ID: ${{ secrets.INTRO_CHANNEL_ID }}
           EXCLUDE_CHANNEL_IDS: ${{ vars.EXCLUDE_CHANNEL_IDS }}
           TIMEZONE: Asia/Tokyo
         run: |
