@@ -1,0 +1,318 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>DHW コミュニティ ダッシュボード</title>
+<style>
+  :root {
+    --surface-1: #fcfcfb;
+    --page: #f9f9f7;
+    --text-primary: #0b0b0b;
+    --text-secondary: #52514e;
+    --muted: #898781;
+    --grid: #e1e0d9;
+    --baseline: #c3c2b7;
+    --border: rgba(11,11,11,0.10);
+    --good: #006300;
+    --bad: #c0322f;
+    --series-1: #2a78d6; /* 新規参加者数 */
+    --series-2: #1baf7a; /* ロール付与数 */
+    --series-3: #eda100; /* 自己紹介投稿者数 */
+    --series-4: #008300; /* アクティブユーザー数 */
+    --status-scheduled: #2a78d6;
+    --status-active: #0ca30c;
+    --status-ended: #898781;
+    --status-cancelled: #d03b3b;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --surface-1: #1a1a19;
+      --page: #0d0d0d;
+      --text-primary: #ffffff;
+      --text-secondary: #c3c2b7;
+      --muted: #898781;
+      --grid: #2c2c2a;
+      --baseline: #383835;
+      --border: rgba(255,255,255,0.10);
+      --good: #0ca30c;
+      --bad: #e66767;
+      --series-1: #3987e5;
+      --series-2: #199e70;
+      --series-3: #c98500;
+      --series-4: #008300;
+      --status-scheduled: #3987e5;
+      --status-active: #0ca30c;
+      --status-ended: #898781;
+      --status-cancelled: #e66767;
+    }
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--page);
+    color: var(--text-primary);
+    font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+    line-height: 1.5;
+  }
+  .wrap { max-width: 1100px; margin: 0 auto; padding: 24px 20px 64px; }
+  header { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 12px 20px; margin-bottom: 20px; }
+  header .titles { flex: 1 1 auto; min-width: 240px; }
+  h1 { font-size: 22px; margin: 0 0 4px; letter-spacing: .01em; }
+  .sub { color: var(--text-secondary); font-size: 13px; }
+  .actions { display: flex; gap: 10px; flex-wrap: wrap; }
+  .btn {
+    display: inline-flex; align-items: center; gap: 6px;
+    font-size: 13px; font-weight: 600; text-decoration: none;
+    padding: 9px 14px; border-radius: 8px; border: 1px solid var(--border);
+    color: var(--text-primary); background: var(--surface-1);
+  }
+  .btn.primary { background: var(--series-1); color: #fff; border-color: transparent; }
+  .btn:hover { filter: brightness(1.04); }
+
+  .kpis { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 16px; }
+  @media (max-width: 720px) { .kpis { grid-template-columns: repeat(2, 1fr); } }
+  .tile {
+    background: var(--surface-1); border: 1px solid var(--border);
+    border-radius: 12px; padding: 14px 16px;
+  }
+  .tile .k-label { font-size: 12px; color: var(--text-secondary); }
+  .tile .k-value { font-size: 30px; font-weight: 650; margin: 4px 0 2px; }
+  .tile .k-delta { font-size: 12px; color: var(--muted); }
+  .k-delta .up { color: var(--good); }
+  .k-delta .down { color: var(--bad); }
+
+  .card {
+    background: var(--surface-1); border: 1px solid var(--border);
+    border-radius: 12px; padding: 16px 18px; margin-bottom: 16px;
+  }
+  .card-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 10px; }
+  h2 { font-size: 15px; margin: 0; }
+  .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  @media (max-width: 820px) { .grid2 { grid-template-columns: 1fr; } }
+
+  .seg { display: inline-flex; border: 1px solid var(--border); border-radius: 8px; overflow: hidden; }
+  .seg button {
+    font: inherit; font-size: 12px; padding: 5px 12px; border: 0; cursor: pointer;
+    background: var(--surface-1); color: var(--text-secondary);
+  }
+  .seg button.on { background: var(--series-1); color: #fff; }
+
+  .chart-box { position: relative; height: 340px; }
+
+  table { width: 100%; border-collapse: collapse; font-size: 13px; font-variant-numeric: tabular-nums; }
+  th, td { text-align: right; padding: 6px 8px; border-bottom: 1px solid var(--grid); }
+  th:first-child, td:first-child { text-align: left; }
+  thead th { color: var(--text-secondary); font-weight: 600; }
+
+  .bar-row { display: grid; grid-template-columns: 150px 1fr auto; align-items: center; gap: 10px; margin: 8px 0; }
+  .bar-name { font-size: 13px; color: var(--text-primary); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .bar-track { height: 16px; }
+  .bar-fill { height: 16px; background: var(--series-1); border-radius: 0 4px 4px 0; min-width: 2px; }
+  .bar-val { font-size: 13px; color: var(--text-secondary); font-variant-numeric: tabular-nums; }
+
+  ul.events { list-style: none; margin: 0; padding: 0; }
+  ul.events li { padding: 10px 0; border-bottom: 1px solid var(--grid); }
+  ul.events li:last-child { border-bottom: 0; }
+  .ev-top { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+  .ev-name { font-weight: 600; font-size: 14px; }
+  .badge { font-size: 11px; font-weight: 600; padding: 2px 8px; border-radius: 999px; border: 1px solid var(--border); white-space: nowrap; }
+  .badge::before { content: "● "; }
+  .badge.scheduled { color: var(--status-scheduled); }
+  .badge.active { color: var(--status-active); }
+  .badge.ended { color: var(--status-ended); }
+  .badge.cancelled { color: var(--status-cancelled); }
+  .ev-meta { font-size: 12px; color: var(--text-secondary); margin-top: 3px; }
+  .new-chip { font-size: 10px; font-weight: 700; color: var(--series-1); border: 1px solid var(--border); border-radius: 999px; padding: 1px 6px; }
+  .empty { color: var(--muted); font-size: 13px; padding: 8px 0; }
+  footer { color: var(--muted); font-size: 12px; margin-top: 8px; }
+  .privacy { color: var(--muted); font-size: 12px; margin-top: 6px; }
+  .hidden { display: none; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="titles">
+      <h1>DHW コミュニティ ダッシュボード</h1>
+      <div class="sub" id="period">読み込み中…</div>
+    </div>
+    <div class="actions">
+      <a class="btn primary" id="genBtn" href="#" target="_blank" rel="noopener">▶ 週報を生成</a>
+      <a class="btn" id="runsBtn" href="#" target="_blank" rel="noopener">実行結果を見る</a>
+    </div>
+  </header>
+
+  <section class="kpis" id="kpis"></section>
+
+  <section class="card">
+    <div class="card-head">
+      <h2>指標の推移</h2>
+      <div class="seg" role="tablist">
+        <button id="tabChart" class="on" type="button">グラフ</button>
+        <button id="tabTable" type="button">表</button>
+      </div>
+    </div>
+    <div class="chart-box" id="chartBox"><canvas id="trend"></canvas></div>
+    <div id="tableBox" class="hidden"></div>
+  </section>
+
+  <div class="grid2">
+    <section class="card">
+      <h2>チャンネルの盛り上がり（直近1週間）</h2>
+      <div id="channels"></div>
+    </section>
+    <section class="card">
+      <h2>イベント</h2>
+      <ul class="events" id="events"></ul>
+    </section>
+  </div>
+
+  <footer id="footer"></footer>
+  <div class="privacy">※ 個人情報保護のため、メンバー名・発言内容はこのダッシュボードには表示していません（集計値のみ）。週報本文は実行結果ページ／Artifactで限定閲覧できます。</div>
+</div>
+
+<script src="./vendor/chart.umd.js"></script>
+<script>
+const cssVar = (n) => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+const fmt = (n) => new Intl.NumberFormat("ja-JP").format(n);
+
+function statusClass(s) {
+  if (s.includes("開催予定")) return "scheduled";
+  if (s.includes("開催中")) return "active";
+  if (s.includes("中止")) return "cancelled";
+  return "ended";
+}
+
+// グラフ系列の終点に値ラベルを描く（色覚多様性への二次エンコード＝直接ラベル）
+const endLabelPlugin = {
+  id: "endLabel",
+  afterDatasetsDraw(chart) {
+    const { ctx } = chart;
+    ctx.save();
+    ctx.font = "600 11px system-ui, sans-serif";
+    chart.data.datasets.forEach((ds, i) => {
+      const meta = chart.getDatasetMeta(i);
+      if (meta.hidden || !meta.data.length) return;
+      const pt = meta.data[meta.data.length - 1];
+      const val = ds.data[ds.data.length - 1];
+      const text = fmt(val);
+      const w = ctx.measureText(text).width;
+      const x = pt.x + 6, y = pt.y;
+      ctx.fillStyle = cssVar("--surface-1");
+      ctx.fillRect(x - 2, y - 8, w + 4, 16);
+      ctx.fillStyle = cssVar("--text-primary");
+      ctx.textBaseline = "middle";
+      ctx.fillText(text, x, y);
+    });
+    ctx.restore();
+  }
+};
+
+async function main() {
+  const data = await fetch("./data.json", { cache: "no-store" }).then(r => r.json());
+
+  document.getElementById("period").textContent =
+    `対象期間: ${data.period.start} 〜 ${data.period.end}（直近1週間）`;
+  document.getElementById("genBtn").href = data.workflow_url;
+  document.getElementById("runsBtn").href = data.actions_url;
+
+  // KPI タイル
+  const kpiEl = document.getElementById("kpis");
+  kpiEl.innerHTML = data.kpis.map(k => {
+    const d = k.delta;
+    const cls = d > 0 ? "up" : d < 0 ? "down" : "";
+    const arrow = d > 0 ? "▲" : d < 0 ? "▼" : "±";
+    return `<div class="tile">
+      <div class="k-label">${k.label}</div>
+      <div class="k-value">${fmt(k.value)}</div>
+      <div class="k-delta">前週比 <span class="${cls}">${arrow} ${fmt(Math.abs(d))}</span></div>
+    </div>`;
+  }).join("");
+
+  // 推移グラフ
+  const cols = data.metric_columns;
+  const labels = data.history.map(r => r.date);
+  const seriesColors = ["--series-1", "--series-2", "--series-3", "--series-4"].map(cssVar);
+  const datasets = cols.map((c, i) => ({
+    label: data.metric_labels[c],
+    data: data.history.map(r => r[c]),
+    borderColor: seriesColors[i],
+    backgroundColor: seriesColors[i],
+    borderWidth: 2,
+    pointRadius: 0,
+    pointHoverRadius: 5,
+    tension: 0.25,
+  }));
+
+  new Chart(document.getElementById("trend"), {
+    type: "line",
+    data: { labels, datasets },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      layout: { padding: { right: 44 } },
+      interaction: { mode: "index", intersect: false },
+      plugins: {
+        legend: { position: "top", labels: { color: cssVar("--text-secondary"), usePointStyle: true, boxWidth: 8, boxHeight: 8 } },
+        tooltip: { titleColor: cssVar("--text-primary"), bodyColor: cssVar("--text-primary"), backgroundColor: cssVar("--surface-1"), borderColor: cssVar("--border"), borderWidth: 1 },
+      },
+      scales: {
+        x: { grid: { color: cssVar("--grid") }, ticks: { color: cssVar("--muted"), maxRotation: 0, autoSkipPadding: 16 }, border: { color: cssVar("--baseline") } },
+        y: { beginAtZero: true, grid: { color: cssVar("--grid") }, ticks: { color: cssVar("--muted") }, border: { color: cssVar("--baseline") } },
+      },
+    },
+    plugins: [endLabelPlugin],
+  });
+
+  // 表ビュー（コントラスト緩和＝relief。全データを表でも提供）
+  const tableBox = document.getElementById("tableBox");
+  tableBox.innerHTML = `<table><thead><tr><th>日付</th>${cols.map(c => `<th>${data.metric_labels[c]}</th>`).join("")}</tr></thead>
+    <tbody>${data.history.map(r => `<tr><td>${r.date}</td>${cols.map(c => `<td>${fmt(r[c])}</td>`).join("")}</tr>`).join("")}</tbody></table>`;
+
+  const tabChart = document.getElementById("tabChart"), tabTable = document.getElementById("tabTable");
+  const chartBox = document.getElementById("chartBox");
+  tabChart.onclick = () => { tabChart.classList.add("on"); tabTable.classList.remove("on"); chartBox.classList.remove("hidden"); tableBox.classList.add("hidden"); };
+  tabTable.onclick = () => { tabTable.classList.add("on"); tabChart.classList.remove("on"); tableBox.classList.remove("hidden"); chartBox.classList.add("hidden"); };
+
+  // チャンネルの盛り上がり（単一系列＝青一色、凡例不要）
+  const chEl = document.getElementById("channels");
+  if (!data.channels_top.length) {
+    chEl.innerHTML = `<div class="empty">対象期間に書き込みはありませんでした。</div>`;
+  } else {
+    const max = Math.max(...data.channels_top.map(c => c.count));
+    chEl.innerHTML = data.channels_top.map(c => `
+      <div class="bar-row">
+        <div class="bar-name" title="#${c.name}">#${c.name}</div>
+        <div class="bar-track"><div class="bar-fill" style="width:${Math.max(2, Math.round(c.count / max * 100))}%"></div></div>
+        <div class="bar-val">${fmt(c.count)}</div>
+      </div>`).join("");
+  }
+
+  // イベント
+  const evEl = document.getElementById("events");
+  if (!data.events.length) {
+    evEl.innerHTML = `<li class="empty">登録されているイベントはありません。</li>`;
+  } else {
+    evEl.innerHTML = data.events.map(ev => {
+      const meta = [];
+      if (ev.scheduled_start) meta.push("開催予定 " + ev.scheduled_start.replace("T", " ").slice(0, 16));
+      if (ev.user_count != null) meta.push("興味あり " + fmt(ev.user_count) + "人");
+      return `<li>
+        <div class="ev-top">
+          <span class="ev-name">${ev.name}</span>
+          <span class="badge ${statusClass(ev.status)}">${ev.status}</span>
+          ${ev.created_in_period ? `<span class="new-chip">今週立ち上げ</span>` : ""}
+        </div>
+        ${meta.length ? `<div class="ev-meta">${meta.join(" ・ ")}</div>` : ""}
+      </li>`;
+    }).join("");
+  }
+
+  const gen = new Date(data.generated_at);
+  document.getElementById("footer").textContent =
+    `最終更新: ${gen.toLocaleString("ja-JP")} ・ データ: ${data.repo}`;
+}
+main().catch(e => { document.getElementById("period").textContent = "データの読み込みに失敗しました: " + e; });
+</script>
+</body>
+</html>

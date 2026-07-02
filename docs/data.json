@@ -1,0 +1,259 @@
+{
+  "generated_at": "2026-07-03T00:00:00+09:00",
+  "period": {
+    "start": "2026-06-26",
+    "end": "2026-07-02"
+  },
+  "repo": "uni-scope/dhw",
+  "workflow_url": "https://github.com/uni-scope/dhw/actions/workflows/weekly-report.yml",
+  "actions_url": "https://github.com/uni-scope/dhw/actions",
+  "metric_columns": [
+    "new_member_count",
+    "role_granted_user_count",
+    "intro_post_user_count",
+    "active_user_count"
+  ],
+  "metric_labels": {
+    "new_member_count": "新規参加者数",
+    "role_granted_user_count": "ロール付与数",
+    "intro_post_user_count": "自己紹介投稿者数",
+    "active_user_count": "アクティブユーザー数"
+  },
+  "kpis": [
+    {
+      "key": "new_member_count",
+      "label": "新規参加者数",
+      "value": 78,
+      "prev": 46,
+      "delta": 32
+    },
+    {
+      "key": "role_granted_user_count",
+      "label": "ロール付与数",
+      "value": 43,
+      "prev": 27,
+      "delta": 16
+    },
+    {
+      "key": "intro_post_user_count",
+      "label": "自己紹介投稿者数",
+      "value": 36,
+      "prev": 29,
+      "delta": 7
+    },
+    {
+      "key": "active_user_count",
+      "label": "アクティブユーザー数",
+      "value": 101,
+      "prev": 58,
+      "delta": 43
+    }
+  ],
+  "history": [
+    {
+      "date": "2026-06-04",
+      "new_member_count": 15,
+      "role_granted_user_count": 20,
+      "intro_post_user_count": 16,
+      "active_user_count": 19
+    },
+    {
+      "date": "2026-06-05",
+      "new_member_count": 4,
+      "role_granted_user_count": 5,
+      "intro_post_user_count": 6,
+      "active_user_count": 9
+    },
+    {
+      "date": "2026-06-06",
+      "new_member_count": 0,
+      "role_granted_user_count": 0,
+      "intro_post_user_count": 0,
+      "active_user_count": 0
+    },
+    {
+      "date": "2026-06-07",
+      "new_member_count": 0,
+      "role_granted_user_count": 1,
+      "intro_post_user_count": 1,
+      "active_user_count": 1
+    },
+    {
+      "date": "2026-06-08",
+      "new_member_count": 1,
+      "role_granted_user_count": 2,
+      "intro_post_user_count": 3,
+      "active_user_count": 6
+    },
+    {
+      "date": "2026-06-09",
+      "new_member_count": 0,
+      "role_granted_user_count": 0,
+      "intro_post_user_count": 0,
+      "active_user_count": 0
+    },
+    {
+      "date": "2026-06-10",
+      "new_member_count": 1,
+      "role_granted_user_count": 1,
+      "intro_post_user_count": 2,
+      "active_user_count": 3
+    },
+    {
+      "date": "2026-06-11",
+      "new_member_count": 0,
+      "role_granted_user_count": 0,
+      "intro_post_user_count": 1,
+      "active_user_count": 1
+    },
+    {
+      "date": "2026-06-12",
+      "new_member_count": 1,
+      "role_granted_user_count": 1,
+      "intro_post_user_count": 1,
+      "active_user_count": 2
+    },
+    {
+      "date": "2026-06-13",
+      "new_member_count": 0,
+      "role_granted_user_count": 0,
+      "intro_post_user_count": 1,
+      "active_user_count": 1
+    },
+    {
+      "date": "2026-06-14",
+      "new_member_count": 0,
+      "role_granted_user_count": 0,
+      "intro_post_user_count": 0,
+      "active_user_count": 0
+    },
+    {
+      "date": "2026-06-15",
+      "new_member_count": 32,
+      "role_granted_user_count": 26,
+      "intro_post_user_count": 25,
+      "active_user_count": 35
+    },
+    {
+      "date": "2026-06-16",
+      "new_member_count": 4,
+      "role_granted_user_count": 0,
+      "intro_post_user_count": 1,
+      "active_user_count": 7
+    },
+    {
+      "date": "2026-06-17",
+      "new_member_count": 2,
+      "role_granted_user_count": 4,
+      "intro_post_user_count": 5,
+      "active_user_count": 7
+    },
+    {
+      "date": "2026-06-18",
+      "new_member_count": 1,
+      "role_granted_user_count": 2,
+      "intro_post_user_count": 3,
+      "active_user_count": 4
+    },
+    {
+      "date": "2026-06-19",
+      "new_member_count": 2,
+      "role_granted_user_count": 0,
+      "intro_post_user_count": 0,
+      "active_user_count": 3
+    },
+    {
+      "date": "2026-06-20",
+      "new_member_count": 0,
+      "role_granted_user_count": 1,
+      "intro_post_user_count": 1,
+      "active_user_count": 2
+    },
+    {
+      "date": "2026-06-21",
+      "new_member_count": 1,
+      "role_granted_user_count": 0,
+      "intro_post_user_count": 0,
+      "active_user_count": 0
+    },
+    {
+      "date": "2026-06-22",
+      "new_member_count": 0,
+      "role_granted_user_count": 0,
+      "intro_post_user_count": 0,
+      "active_user_count": 0
+    },
+    {
+      "date": "2026-06-23",
+      "new_member_count": 0,
+      "role_granted_user_count": 0,
+      "intro_post_user_count": 0,
+      "active_user_count": 1
+    },
+    {
+      "date": "2026-06-24",
+      "new_member_count": 34,
+      "role_granted_user_count": 21,
+      "intro_post_user_count": 22,
+      "active_user_count": 39
+    },
+    {
+      "date": "2026-06-25",
+      "new_member_count": 9,
+      "role_granted_user_count": 5,
+      "intro_post_user_count": 6,
+      "active_user_count": 13
+    },
+    {
+      "date": "2026-06-26",
+      "new_member_count": 3,
+      "role_granted_user_count": 4,
+      "intro_post_user_count": 4,
+      "active_user_count": 6
+    },
+    {
+      "date": "2026-06-27",
+      "new_member_count": 5,
+      "role_granted_user_count": 2,
+      "intro_post_user_count": 2,
+      "active_user_count": 7
+    },
+    {
+      "date": "2026-06-28",
+      "new_member_count": 2,
+      "role_granted_user_count": 4,
+      "intro_post_user_count": 4,
+      "active_user_count": 5
+    },
+    {
+      "date": "2026-06-29",
+      "new_member_count": 5,
+      "role_granted_user_count": 6,
+      "intro_post_user_count": 7,
+      "active_user_count": 8
+    },
+    {
+      "date": "2026-06-30",
+      "new_member_count": 2,
+      "role_granted_user_count": 0,
+      "intro_post_user_count": 0,
+      "active_user_count": 2
+    },
+    {
+      "date": "2026-07-01",
+      "new_member_count": 53,
+      "role_granted_user_count": 16,
+      "intro_post_user_count": 16,
+      "active_user_count": 62
+    },
+    {
+      "date": "2026-07-02",
+      "new_member_count": 8,
+      "role_granted_user_count": 11,
+      "intro_post_user_count": 3,
+      "active_user_count": 11
+    }
+  ],
+  "channels_top": [],
+  "events": []
+}

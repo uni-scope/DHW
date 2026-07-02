@@ -6,6 +6,7 @@ from anthropic import Anthropic
 
 from collector import run_collect
 from config import Config
+from dashboard import write_dashboard_data
 from metrics import append_metrics, render_graph
 from reporter import generate_note_article, generate_weekly_report
 
@@ -82,6 +83,7 @@ def main() -> None:
 
     history = append_metrics(config, data)
     render_graph(config, history)
+    dashboard_path = write_dashboard_data(config, data, history)
 
     first_day = since.astimezone(tz).date()
     last_day = (until - timedelta(microseconds=1)).astimezone(tz).date()
@@ -89,6 +91,7 @@ def main() -> None:
     print(f"分析起点（チャンネル/イベント）: {analysis_since.astimezone(tz):%Y-%m-%d %H:%M}")
     print(f"指標CSVを更新しました: {config.metrics_csv_path}（{len(data.daily_metrics)}日分）")
     print(f"グラフを更新しました: {config.metrics_graph_path}")
+    print(f"ダッシュボードデータを更新しました: {dashboard_path}")
 
     if args.skip_report:
         print("--skip-report が指定されたため、レポート生成をスキップしました。")

@@ -81,15 +81,15 @@ jobs:
             } >> "$GITHUB_STEP_SUMMARY"
           fi
 
-      - name: Commit updated metrics and state
+      - name: Commit updated metrics and dashboard
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add metrics_history.csv metrics_graph.png
+          git add metrics_history.csv metrics_graph.png docs/data.json
           if git diff --cached --quiet; then
             echo "指標に変化がないためコミットをスキップします。"
           else
-            git commit -m "Update community metrics (weekly report run)"
+            git commit -m "Update community metrics and dashboard (weekly report run)"
             git push origin "HEAD:${{ github.ref_name }}"
           fi
 

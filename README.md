@@ -76,6 +76,27 @@ python main.py --since 2026-06-04 --until 2026-07-02 --skip-report
 2. （任意）**Variables** に `GUILD_ID` / `INTRO_CHANNEL_ID` / `EXCLUDE_CHANNEL_IDS` を登録（未設定時はワークフロー内の既定値を使用）
 3. Actions画面から「Weekly community report」を実行（`since`/`until`/`skip_report` を任意指定可）
 
+## ダッシュボード（GitHub Pages）
+
+`docs/` に常設ダッシュボード（`docs/index.html`）があり、実行のたびに `docs/data.json` が更新されます。
+KPIタイル（前週比つき）・指標の推移グラフ（インタラクティブ／表ビュー切替）・チャンネルの盛り上がり
+Top5・イベント一覧を表示し、「週報を生成」ボタンから GitHub Actions の実行画面へ遷移できます。
+
+**プライバシー**: ダッシュボードは**集計値のみ**を表示します（メンバー名・発言内容は出しません）。
+週報本文は Actions実行ページのサマリー／Artifact で限定閲覧してください。
+
+### GitHub Pages の有効化
+
+1. リポジトリの **Settings → Pages**
+2. **Source** = 「Deploy from a branch」
+3. **Branch** = `claude/beautiful-darwin-crqcwi`、フォルダ = **`/docs`** を選んで **Save**
+4. 数分後、`https://<オーナー>.github.io/<リポジトリ>/` で公開されます
+
+> GitHub Pages サイトは原則インターネット公開です（この構成は集計値のみ公開）。
+> 週報本文を含む非公開運用が必要な場合は外部ホスティング＋認証が必要です。
+
+グラフ描画には Chart.js を `docs/vendor/` に同梱しており、外部CDNに依存しません。
+
 ## モデル使い分け
 
 - 週報（推移・チャンネル・イベントの分析）: Sonnet
