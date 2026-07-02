@@ -1,12 +1,12 @@
 {
-  "generated_at": "2026-07-03T00:00:00+09:00",
+  "generated_at": "2026-07-02T23:36:26.941402+09:00",
   "period": {
-    "start": "2026-06-26",
+    "start": "2026-06-25",
     "end": "2026-07-02"
   },
-  "repo": "uni-scope/dhw",
-  "workflow_url": "https://github.com/uni-scope/dhw/actions/workflows/weekly-report.yml",
-  "actions_url": "https://github.com/uni-scope/dhw/actions",
+  "repo": "uni-scope/DHW",
+  "workflow_url": "https://github.com/uni-scope/DHW/actions/workflows/weekly-report.yml",
+  "actions_url": "https://github.com/uni-scope/DHW/actions",
   "metric_columns": [
     "new_member_count",
     "role_granted_user_count",
@@ -23,30 +23,30 @@
     {
       "key": "new_member_count",
       "label": "新規参加者数",
-      "value": 78,
+      "value": 81,
       "prev": 46,
-      "delta": 32
+      "delta": 35
     },
     {
       "key": "role_granted_user_count",
       "label": "ロール付与数",
-      "value": 43,
+      "value": 47,
       "prev": 27,
-      "delta": 16
+      "delta": 20
     },
     {
       "key": "intro_post_user_count",
       "label": "自己紹介投稿者数",
-      "value": 36,
+      "value": 39,
       "prev": 29,
-      "delta": 7
+      "delta": 10
     },
     {
       "key": "active_user_count",
       "label": "アクティブユーザー数",
-      "value": 101,
+      "value": 105,
       "prev": 58,
-      "delta": 43
+      "delta": 47
     }
   ],
   "history": [
@@ -248,12 +248,21 @@
     },
     {
       "date": "2026-07-02",
-      "new_member_count": 8,
-      "role_granted_user_count": 11,
-      "intro_post_user_count": 3,
-      "active_user_count": 11
+      "new_member_count": 11,
+      "role_granted_user_count": 15,
+      "intro_post_user_count": 6,
+      "active_user_count": 15
     }
   ],
-  "channels_top": [],
+  "channels_top": [
+    {
+      "name": "🚪ようこそ！",
+      "count": 96
+    },
+    {
+      "name": "👋自己紹介はこちら",
+      "count": 52
+    }
+  ],
   "events": []
 }
