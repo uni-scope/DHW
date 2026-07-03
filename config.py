@@ -20,6 +20,10 @@ class Config:
         default_factory=lambda: _split_ids(os.environ.get("EXCLUDE_CHANNEL_IDS", ""))
     )
     intro_channel_id: int = field(default_factory=lambda: int(os.environ["INTRO_CHANNEL_ID"]))
+    # 自己紹介の投稿から自動付与される「閲覧権限」ロール名（ダッシュボードでは DHUmember 数として扱う）
+    view_role_name: str = field(default_factory=lambda: os.environ.get("VIEW_ROLE_NAME", "閲覧権限"))
+    # 運営（管理者）ロール名
+    admin_role_name: str = field(default_factory=lambda: os.environ.get("ADMIN_ROLE_NAME", "Administrator"))
     timezone: ZoneInfo = field(default_factory=lambda: ZoneInfo(os.environ.get("TIMEZONE", "Asia/Tokyo")))
     haiku_model: str = field(default_factory=lambda: os.environ.get("HAIKU_MODEL", "claude-haiku-4-5-20251001"))
     sonnet_model: str = field(default_factory=lambda: os.environ.get("SONNET_MODEL", "claude-sonnet-5"))

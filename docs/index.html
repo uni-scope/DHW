@@ -70,8 +70,21 @@
   .btn.primary { background: var(--series-1); color: #fff; border-color: transparent; }
   .btn:hover { filter: brightness(1.04); }
 
-  .kpis { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 16px; }
-  @media (max-width: 720px) { .kpis { grid-template-columns: repeat(2, 1fr); } }
+  .section-h { font-size: 13px; color: var(--text-secondary); font-weight: 600; margin: 4px 0 8px; }
+
+  .totals { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-bottom: 18px; }
+  @media (max-width: 640px) { .totals { grid-template-columns: 1fr; } }
+  .total-tile {
+    background: var(--series-1); color: #fff; border-radius: 12px; padding: 16px 18px;
+    display: flex; flex-direction: column; gap: 2px;
+  }
+  .total-tile.alt { background: var(--surface-1); color: var(--text-primary); border: 1px solid var(--border); }
+  .total-tile .t-label { font-size: 12px; opacity: .85; }
+  .total-tile .t-value { font-size: 32px; font-weight: 700; line-height: 1.15; }
+  .total-tile .t-note { font-size: 11px; opacity: .8; }
+
+  .kpis { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-bottom: 16px; }
+  @media (max-width: 720px) { .kpis { grid-template-columns: 1fr; } }
   .tile {
     background: var(--surface-1); border: 1px solid var(--border);
     border-radius: 12px; padding: 14px 16px;
@@ -152,6 +165,9 @@
     </div>
   </header>
 
+  <section class="totals" id="totals"></section>
+
+  <h3 class="section-h">週次の動き（直近1週間・前週比）</h3>
   <section class="kpis" id="kpis"></section>
 
   <section class="card">
@@ -227,6 +243,26 @@ async function main() {
     `対象期間: ${data.period.start} 〜 ${data.period.end}（直近1週間）`;
   document.getElementById("genBtn").href = data.workflow_url;
   document.getElementById("runsBtn").href = data.actions_url;
+
+  // 現在の総数（スナップショット）
+  const t = data.totals || {};
+  const num = (v) => (v == null ? "—" : fmt(v));
+  document.getElementById("totals").innerHTML = `
+    <div class="total-tile">
+      <div class="t-label">現在のメンバー総数</div>
+      <div class="t-value">${num(t.member_count)}</div>
+      <div class="t-note">サーバー在籍者の合計</div>
+    </div>
+    <div class="total-tile alt">
+      <div class="t-label">Administrator</div>
+      <div class="t-value">${num(t.admin_role_count)}</div>
+      <div class="t-note">「${t.admin_role_name || "Administrator"}」ロール保持者</div>
+    </div>
+    <div class="total-tile alt">
+      <div class="t-label">DHUmember</div>
+      <div class="t-value">${num(t.dhumember_count)}</div>
+      <div class="t-note">「閲覧権限」ロール保持者（自己紹介から自動付与）</div>
+    </div>`;
 
   // KPI タイル
   const kpiEl = document.getElementById("kpis");

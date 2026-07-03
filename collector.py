@@ -21,8 +21,7 @@ class MessageRecord:
 class DailyMetric:
     date: str  # YYYY-MM-DD（config.timezone 基準）
     new_member_count: int = 0
-    role_granted_user_count: int = 0
-    intro_post_user_count: int = 0
+    view_role_granted_count: int = 0  # 「閲覧権限」ロール付与数（＝DHUmember数）
     active_user_count: int = 0
 
 
@@ -41,12 +40,11 @@ class EventRecord:
 class CollectedData:
     period_start: datetime
     period_end: datetime
-    # 分析対象期間の開始（前回の週報生成時点）。チャンネル/イベント分析に使う。
+    # 分析対象期間の開始。チャンネル/イベント分析に使う。
     analysis_start: datetime | None = None
     # 期間全体の集計（レポート用）
     new_member_count: int = 0
-    role_granted_user_count: int = 0
-    intro_post_user_count: int = 0
+    view_role_granted_count: int = 0
     active_user_count: int = 0
     messages: list[MessageRecord] = field(default_factory=list)
     channel_message_counts: dict[str, int] = field(default_factory=dict)
@@ -54,6 +52,10 @@ class CollectedData:
     daily_metrics: list[DailyMetric] = field(default_factory=list)
     # イベント（Discordスケジュールイベント）
     events: list[EventRecord] = field(default_factory=list)
+    # 現在時点のスナップショット（総数）
+    total_member_count: int = 0
+    admin_role_count: int = 0
+    view_role_member_count: int = 0  # 「閲覧権限」ロール保持者数（＝DHUmember）
 
 
 def _day_key(dt: datetime, tz) -> str:
@@ -131,25 +133,33 @@ async def _collect_with_client(
     tz = config.timezone
     data = CollectedData(period_start=since, period_end=until, analysis_start=analysis_since)
 
-    # 新規参加者数（日別）
-    # 注: 現在サーバーに在籍しているメンバーの joined_at を用いるため、
+    # 新規参加者数（日別）＋ 現在のスナップショット（総数・Administrator・閲覧権限）
+    # 注: 新規参加者は現在サーバーに在籍しているメンバーの joined_at を用いるため、
     # 期間中に参加後すぐ退出したメンバーはカウントされない。
     new_members_by_day: dict[str, int] = defaultdict(int)
     async for member in guild.fetch_members(limit=None):
+        data.total_member_count += 1
+        role_names = {r.name for r in member.roles}
+        if config.admin_role_name in role_names:
+            data.admin_role_count += 1
+        if config.view_role_name in role_names:
+            data.view_role_member_count += 1
         if member.joined_at and since <= member.joined_at <= until:
             new_members_by_day[_day_key(member.joined_at, tz)] += 1
 
-    # ロール付与数（監査ログ・日別のユニークユーザー）
-    role_users_by_day: dict[str, set[int]] = defaultdict(set)
+    # 「閲覧権限」ロール付与数（監査ログ・日別のユニークユーザー）＝DHUmember数
+    # 自己紹介の投稿を起点に「閲覧権限」ロールが自動付与される運用のため、
+    # このロール付与を新規DHUmemberの指標として集計する。
+    view_role_by_day: dict[str, set[int]] = defaultdict(set)
     async for entry in guild.audit_logs(
         action=discord.AuditLogAction.member_role_update, after=since, before=until, limit=None
     ):
-        if entry.target and getattr(entry.after, "roles", None):
-            role_users_by_day[_day_key(entry.created_at, tz)].add(entry.target.id)
+        added = getattr(entry.after, "roles", None)
+        if entry.target and added and any(r.name == config.view_role_name for r in added):
+            view_role_by_day[_day_key(entry.created_at, tz)].add(entry.target.id)
 
-    # 自己紹介投稿者数 / アクティブユーザー数（日別）・メッセージ履歴
+    # アクティブユーザー数（日別）・メッセージ履歴
     active_by_day: dict[str, set[int]] = defaultdict(set)
-    intro_by_day: dict[str, set[int]] = defaultdict(set)
 
     me = guild.me
     for channel in guild.text_channels:
@@ -164,9 +174,7 @@ async def _collect_with_client(
             day = _day_key(message.created_at, tz)
             # 日別指標は全期間（カレンダー日単位）で集計する
             active_by_day[day].add(message.author.id)
-            if channel.id == config.intro_channel_id:
-                intro_by_day[day].add(message.author.id)
-            # チャンネルの盛り上がり・レポート本文は「前回の週報生成時点以降」のみ対象
+            # チャンネルの盛り上がり・レポート本文は分析対象期間（直近1週間）のみ対象
             if message.created_at >= analysis_since:
                 data.channel_message_counts[channel.name] = (
                     data.channel_message_counts.get(channel.name, 0) + 1
@@ -186,16 +194,14 @@ async def _collect_with_client(
             DailyMetric(
                 date=day,
                 new_member_count=new_members_by_day.get(day, 0),
-                role_granted_user_count=len(role_users_by_day.get(day, set())),
-                intro_post_user_count=len(intro_by_day.get(day, set())),
+                view_role_granted_count=len(view_role_by_day.get(day, set())),
                 active_user_count=len(active_by_day.get(day, set())),
             )
         )
 
     # 期間全体の集計（レポート用）
     data.new_member_count = sum(new_members_by_day.values())
-    data.role_granted_user_count = len(set().union(*role_users_by_day.values())) if role_users_by_day else 0
-    data.intro_post_user_count = len(set().union(*intro_by_day.values())) if intro_by_day else 0
+    data.view_role_granted_count = len(set().union(*view_role_by_day.values())) if view_role_by_day else 0
     data.active_user_count = len(set().union(*active_by_day.values())) if active_by_day else 0
 
     # イベント（スケジュールイベント）: 現在の予定/開催中を取得し、

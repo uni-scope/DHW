@@ -56,9 +56,16 @@ def _format_messages(config: Config, data: CollectedData) -> str:
 def _metrics_block(data: CollectedData) -> str:
     return (
         f"- 新規参加者数: {data.new_member_count}\n"
-        f"- ロール付与数: {data.role_granted_user_count}\n"
-        f"- 自己紹介投稿者数: {data.intro_post_user_count}\n"
+        f"- DHUmember数（「閲覧権限」ロール付与・自己紹介からの自動付与）: {data.view_role_granted_count}\n"
         f"- アクティブユーザー数（発言ユニークユーザー）: {data.active_user_count}"
+    )
+
+
+def _totals_block(config: Config, data: CollectedData) -> str:
+    return (
+        f"- 現在のメンバー総数: {data.total_member_count}\n"
+        f"- Administratorロール保持者数: {data.admin_role_count}\n"
+        f"- DHUmember数（「閲覧権限」ロール保持者）: {data.view_role_member_count}"
     )
 
 
@@ -119,7 +126,10 @@ def generate_weekly_report(
     period = _period_label(config, data)
     prompt = f"""あなたはDiscordコミュニティの運営アシスタントです。
 以下のデータをもとに、管理者向けの「週報」をMarkdownで作成してください。
-対象期間は前回の週報生成時点以降（{period}）です。
+対象期間は直近1週間（{period}）です。
+
+# 0. 現在の総数（スナップショット）
+{_totals_block(config, data)}
 
 # 1. ユーザー数の推移（週次集計・直近）
 {_weekly_trend_block(history)}
@@ -137,8 +147,10 @@ def generate_weekly_report(
 {_format_messages(config, data)}
 
 # 出力要件（Markdown・日本語・見出し＋箇条書き中心）
+## 現在の状況
+- 現在のメンバー総数・Administrator数・DHUmember数を簡潔に記載する
 ## ユーザー数の推移
-- 上記の週次集計をもとに、参加者数・アクティブ数などの増減トレンドを簡潔に述べる
+- 上記の週次集計をもとに、参加者数・DHUmember数・アクティブ数などの増減トレンドを簡潔に述べる
 ## チャンネルの盛り上がり
 - 書き込み数の多い上位3〜5チャンネルを挙げ、各チャンネルで何が話題だったかをメッセージ履歴を根拠に1〜2行で要約する
 ## イベント
@@ -152,30 +164,6 @@ def generate_weekly_report(
     message = client.messages.create(
         model=config.sonnet_model,
         max_tokens=2500,
-        messages=[{"role": "user", "content": prompt}],
-    )
-    return _extract_text(message)
-
-
-def generate_note_article(client: Anthropic, config: Config, data: CollectedData) -> str:
-    period = _period_label(config, data)
-    prompt = f"""あなたはコミュニティの様子を外部向けに発信するライターです。
-以下のメッセージ履歴（対象期間: {period}）から、些末な雑談やノイズを除外し、
-特定のイベント・トレンド・重要な気づきにフォーカスしたnote記事をMarkdown形式で書いてください。
-
-# メッセージ履歴
-{_format_messages(config, data)}
-
-# 出力要件
-- Markdown形式（タイトルは # 見出し）
-- 外部の読者にも伝わるように、文脈や背景を補いながら書く
-- 個人が特定されすぎないよう、必要に応じて表現を一般化してよい
-- 雑談やノイズは取り上げず、記事になりうるトピックのみ扱う
-- トピックが特になければ「対象期間中に特筆すべきイベントはありませんでした」と一言で終えてよい"""
-
-    message = client.messages.create(
-        model=config.sonnet_model,
-        max_tokens=2000,
         messages=[{"role": "user", "content": prompt}],
     )
     return _extract_text(message)

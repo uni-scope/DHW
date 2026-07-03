@@ -19,6 +19,18 @@ DATA_FILENAME = "data.json"
 TOP_CHANNELS = 5
 
 
+def _normalize_history(history: pd.DataFrame) -> pd.DataFrame:
+    """現在の指標カラムだけに揃える（旧スキーマ／欠損に強くする）。"""
+    df = history.copy()
+    for col in METRIC_COLUMNS:
+        if col not in df.columns:
+            df[col] = 0
+    df = df[["date", *METRIC_COLUMNS]].fillna(0)
+    for col in METRIC_COLUMNS:
+        df[col] = df[col].astype(int)
+    return df
+
+
 def _kpis(history: pd.DataFrame, last_day) -> list[dict]:
     """直近7日（対象週）と、その前7日の合計を比較してKPIを作る。"""
     df = history.copy()
@@ -50,6 +62,7 @@ def _kpis(history: pd.DataFrame, last_day) -> list[dict]:
 def write_dashboard_data(config: Config, data: CollectedData, history: pd.DataFrame) -> str:
     tz = config.timezone
     os.makedirs(DOCS_DIR, exist_ok=True)
+    history = _normalize_history(history)
 
     first_day = data.period_start.astimezone(tz).date()
     last_day = (data.period_end - timedelta(microseconds=1)).astimezone(tz).date()
@@ -89,6 +102,14 @@ def write_dashboard_data(config: Config, data: CollectedData, history: pd.DataFr
         "history": history[["date", *METRIC_COLUMNS]].to_dict(orient="records"),
         "channels_top": channels_top,
         "events": events,
+        # 現在時点のスナップショット（総数）。「閲覧権限」ロールは DHUmember として表記する。
+        "totals": {
+            "member_count": data.total_member_count,
+            "admin_role_count": data.admin_role_count,
+            "dhumember_count": data.view_role_member_count,
+            "view_role_name": config.view_role_name,
+            "admin_role_name": config.admin_role_name,
+        },
     }
 
     path = os.path.join(DOCS_DIR, DATA_FILENAME)

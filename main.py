@@ -8,7 +8,7 @@ from collector import run_collect
 from config import Config
 from dashboard import write_dashboard_data
 from metrics import append_metrics, render_graph
-from reporter import generate_note_article, generate_weekly_report
+from reporter import generate_weekly_report
 
 
 def _parse_args() -> argparse.Namespace:
@@ -99,21 +99,15 @@ def main() -> None:
 
     client = Anthropic(api_key=config.anthropic_api_key)
     weekly_report = generate_weekly_report(client, config, data, history)
-    note_article = generate_note_article(client, config, data)
 
     os.makedirs(config.output_dir, exist_ok=True)
     date_str = last_day.strftime("%Y-%m-%d")
-
     weekly_path = os.path.join(config.output_dir, f"{date_str}_weekly.md")
-    note_path = os.path.join(config.output_dir, f"{date_str}_note.md")
 
     with open(weekly_path, "w", encoding="utf-8") as f:
         f.write(weekly_report)
-    with open(note_path, "w", encoding="utf-8") as f:
-        f.write(note_article)
 
     print(f"週報を出力しました: {weekly_path}")
-    print(f"note記事を出力しました: {note_path}")
 
 
 if __name__ == "__main__":

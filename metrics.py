@@ -10,16 +10,14 @@ from config import Config
 
 METRIC_COLUMNS = [
     "new_member_count",
-    "role_granted_user_count",
-    "intro_post_user_count",
+    "view_role_granted_count",
     "active_user_count",
 ]
 
 # グラフ凡例（日本語）
 METRIC_LABELS_JA = {
     "new_member_count": "新規参加者数",
-    "role_granted_user_count": "ロール付与数",
-    "intro_post_user_count": "自己紹介投稿者数",
+    "view_role_granted_count": "DHUmember数",
     "active_user_count": "アクティブユーザー数",
 }
 
@@ -29,11 +27,10 @@ METRIC_DEFS_JA = {
         "その日にサーバーへ新規参加したメンバー数。現在も在籍しているメンバーの参加日時を基に"
         "集計するため、期間中に参加後すぐ退出した人は含みません。"
     ),
-    "role_granted_user_count": (
-        "その日に監査ログ上でロールが付与されたユニークなユーザー数（同一ユーザーは1回として集計）。"
-    ),
-    "intro_post_user_count": (
-        "その日に自己紹介チャンネルへ投稿したユニークなユーザー数（Botを除く）。"
+    "view_role_granted_count": (
+        "その日に「閲覧権限」ロールが付与されたユニークなユーザー数。"
+        "自己紹介の投稿から「閲覧権限」ロールを自動付与しているため、"
+        "実質的に新たにDHUmemberになった人数を表します。"
     ),
     "active_user_count": (
         "その日に対象テキストチャンネルのいずれかで1回以上発言したユニークなユーザー数"
@@ -72,8 +69,7 @@ def append_metrics(config: Config, data: CollectedData) -> pd.DataFrame:
         {
             "date": m.date,
             "new_member_count": m.new_member_count,
-            "role_granted_user_count": m.role_granted_user_count,
-            "intro_post_user_count": m.intro_post_user_count,
+            "view_role_granted_count": m.view_role_granted_count,
             "active_user_count": m.active_user_count,
         }
         for m in data.daily_metrics
@@ -88,6 +84,13 @@ def append_metrics(config: Config, data: CollectedData) -> pd.DataFrame:
     new_dates = {row["date"] for row in rows}
     history = history[~history["date"].isin(new_dates)]
     history = pd.concat([history, pd.DataFrame(rows)], ignore_index=True)
+    # スキーマを現在の指標カラムだけに正規化（旧カラムは破棄・欠損は0）
+    for column in METRIC_COLUMNS:
+        if column not in history.columns:
+            history[column] = 0
+    history = history[["date", *METRIC_COLUMNS]].fillna(0)
+    for column in METRIC_COLUMNS:
+        history[column] = history[column].astype(int)
     history = history.sort_values("date").reset_index(drop=True)
     history.to_csv(config.metrics_csv_path, index=False)
     return history
@@ -98,7 +101,8 @@ def render_graph(config: Config, history: pd.DataFrame) -> None:
     fig, ax = plt.subplots(figsize=(10, 6))
     dates = pd.to_datetime(history["date"])
     for column in METRIC_COLUMNS:
-        ax.plot(dates, history[column], marker="o", label=METRIC_LABELS_JA[column])
+        series = history[column] if column in history.columns else 0
+        ax.plot(dates, series, marker="o", label=METRIC_LABELS_JA[column])
 
     ax.set_title("コミュニティ指標の推移")
     ax.set_xlabel("日付")
