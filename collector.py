@@ -158,35 +158,81 @@ async def _collect_with_client(
         if entry.target and added and any(r.name == config.view_role_name for r in added):
             view_role_by_day[_day_key(entry.created_at, tz)].add(entry.target.id)
 
-    # アクティブユーザー数（日別）・メッセージ履歴
+    # アクティブユーザー数（日別）と、チャンネル/掲示板の盛り上がり（投稿数）
     active_by_day: dict[str, set[int]] = defaultdict(set)
 
+    # 「公開チャンネル」判定に使う「閲覧権限」ロール（無ければ @everyone にフォールバック）
+    view_role = discord.utils.get(guild.roles, name=config.view_role_name) or guild.default_role
     me = guild.me
+
+    def _is_ranking_target(channel) -> bool:
+        # 盛り上がりの対象: exclude_channel_ids と 名前キーワード（ようこそ/自己紹介/アナウンス等）を
+        # 除外し、「閲覧権限」ロールが閲覧できる公開チャンネルのみを対象にする。
+        if channel.id in config.exclude_channel_ids:
+            return False
+        name = channel.name or ""
+        if any(kw and kw in name for kw in config.ranking_exclude_keywords):
+            return False
+        perms = channel.permissions_for(view_role)
+        return perms.view_channel and perms.read_message_history
+
+    def _add_ranking(name_key: str, message) -> None:
+        data.channel_message_counts[name_key] = data.channel_message_counts.get(name_key, 0) + 1
+        data.messages.append(
+            MessageRecord(
+                channel_name=name_key,
+                author_name=message.author.display_name,
+                content=message.content,
+                created_at=message.created_at,
+            )
+        )
+
+    async def _count_threads_for_ranking(parent, name_key: str, include_archived: bool) -> None:
+        threads = list(getattr(parent, "threads", []))
+        if include_archived:
+            try:
+                async for th in parent.archived_threads(limit=100):
+                    threads.append(th)
+            except (discord.Forbidden, discord.HTTPException):
+                pass
+        for th in threads:
+            try:
+                async for m in th.history(limit=None, after=since, before=until, oldest_first=True):
+                    if m.author.bot:
+                        continue
+                    if m.created_at >= analysis_since:
+                        _add_ranking(name_key, m)
+            except (discord.Forbidden, discord.HTTPException):
+                continue
+
+    # テキストチャンネル: アクティブユーザー数は全チャンネル（除外IDのみ除く）、
+    # 盛り上がりは公開チャンネルのみ（ようこそ/自己紹介/アナウンス等を除外）。
     for channel in guild.text_channels:
         if channel.id in config.exclude_channel_ids:
             continue
         if not channel.permissions_for(me).read_message_history:
             continue
-
+        ranking = _is_ranking_target(channel)
         async for message in channel.history(limit=None, after=since, before=until, oldest_first=True):
             if message.author.bot:
                 continue
             day = _day_key(message.created_at, tz)
-            # 日別指標は全期間（カレンダー日単位）で集計する
+            # アクティブユーザー数は日別・全期間で集計
             active_by_day[day].add(message.author.id)
-            # チャンネルの盛り上がり・レポート本文は分析対象期間（直近1週間）のみ対象
-            if message.created_at >= analysis_since:
-                data.channel_message_counts[channel.name] = (
-                    data.channel_message_counts.get(channel.name, 0) + 1
-                )
-                data.messages.append(
-                    MessageRecord(
-                        channel_name=channel.name,
-                        author_name=message.author.display_name,
-                        content=message.content,
-                        created_at=message.created_at,
-                    )
-                )
+            # 盛り上がり・レポート本文は分析対象期間（直近1週間）＆公開チャンネルのみ
+            if ranking and message.created_at >= analysis_since:
+                _add_ranking(channel.name, message)
+        # 公開チャンネル配下のアクティブスレッドも投稿数に含める
+        if ranking:
+            await _count_threads_for_ranking(channel, channel.name, include_archived=False)
+
+    # 掲示板（フォーラム）: 公開フォーラムのスレッド投稿を盛り上がりに含める
+    for forum in getattr(guild, "forums", []):
+        if not forum.permissions_for(me).read_message_history:
+            continue
+        if not _is_ranking_target(forum):
+            continue
+        await _count_threads_for_ranking(forum, forum.name, include_archived=True)
 
     # 期間内の全カレンダー日について行を作る（活動ゼロの日も 0 で埋める）
     for day in _iter_days(since, until, tz):

@@ -24,6 +24,15 @@ class Config:
     view_role_name: str = field(default_factory=lambda: os.environ.get("VIEW_ROLE_NAME", "閲覧権限"))
     # 運営（管理者）ロール名
     admin_role_name: str = field(default_factory=lambda: os.environ.get("ADMIN_ROLE_NAME", "Administrator"))
+    # 「チャンネルの盛り上がり」から除外するチャンネル名キーワード（部分一致）。
+    # 既定: ようこそ / 自己紹介 / アナウンス（絵文字プレフィックス等に強い部分一致で判定）
+    ranking_exclude_keywords: list[str] = field(
+        default_factory=lambda: [
+            s.strip()
+            for s in os.environ.get("RANKING_EXCLUDE_KEYWORDS", "ようこそ,自己紹介,アナウンス").split(",")
+            if s.strip()
+        ]
+    )
     timezone: ZoneInfo = field(default_factory=lambda: ZoneInfo(os.environ.get("TIMEZONE", "Asia/Tokyo")))
     haiku_model: str = field(default_factory=lambda: os.environ.get("HAIKU_MODEL", "claude-haiku-4-5-20251001"))
     sonnet_model: str = field(default_factory=lambda: os.environ.get("SONNET_MODEL", "claude-sonnet-5"))
