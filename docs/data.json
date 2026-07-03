@@ -1,7 +1,7 @@
 {
-  "generated_at": "2026-07-03T16:16:10.269942+09:00",
+  "generated_at": "2026-07-03T16:45:45.770065+09:00",
   "period": {
-    "start": "2026-06-04",
+    "start": "2026-06-26",
     "end": "2026-07-03"
   },
   "repo": "uni-scope/DHW",
@@ -33,9 +33,9 @@
     {
       "key": "view_role_granted_count",
       "label": "DHUmember数",
-      "value": 41,
+      "value": 42,
       "prev": 31,
-      "delta": 10
+      "delta": 11
     },
     {
       "key": "active_user_count",
@@ -223,54 +223,16 @@
     {
       "date": "2026-07-03",
       "new_member_count": 10,
-      "view_role_granted_count": 5,
+      "view_role_granted_count": 6,
       "active_user_count": 12
     }
   ],
-  "channels_top": [
-    {
-      "name": "🚪ようこそ！",
-      "count": 290
-    },
-    {
-      "name": "👋自己紹介はこちら",
-      "count": 182
-    }
-  ],
-  "events": [
-    {
-      "name": "現実科学レクチャーVol.72",
-      "status": "終了/削除済みの可能性",
-      "scheduled_start": null,
-      "user_count": null,
-      "created_in_period": true
-    },
-    {
-      "name": "服のこと ゆるっと 話す会",
-      "status": "終了/削除済みの可能性",
-      "scheduled_start": null,
-      "user_count": null,
-      "created_in_period": true
-    },
-    {
-      "name": "「現実を否定する座談会」",
-      "status": "終了/削除済みの可能性",
-      "scheduled_start": null,
-      "user_count": null,
-      "created_in_period": true
-    },
-    {
-      "name": "Discordプレオープンイベント協力者求む！",
-      "status": "終了/削除済みの可能性",
-      "scheduled_start": null,
-      "user_count": null,
-      "created_in_period": true
-    }
-  ],
+  "channels_top": [],
+  "events": [],
   "totals": {
     "member_count": 208,
     "admin_role_count": 13,
-    "dhumember_count": 127,
+    "dhumember_count": 128,
     "view_role_name": "閲覧権限",
     "admin_role_name": "Administrator"
   }
