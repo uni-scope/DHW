@@ -12,7 +12,7 @@ import pandas as pd
 
 from collector import CollectedData
 from config import Config
-from metrics import METRIC_COLUMNS, METRIC_LABELS_JA
+from metrics import METRIC_COLUMNS, METRIC_DEFS_JA, METRIC_LABELS_JA
 
 DOCS_DIR = "docs"
 DATA_FILENAME = "data.json"
@@ -84,6 +84,7 @@ def write_dashboard_data(config: Config, data: CollectedData, history: pd.DataFr
         "actions_url": actions_url,
         "metric_columns": METRIC_COLUMNS,
         "metric_labels": METRIC_LABELS_JA,
+        "metric_defs": METRIC_DEFS_JA,
         "kpis": _kpis(history, last_day),
         "history": history[["date", *METRIC_COLUMNS]].to_dict(orient="records"),
         "channels_top": channels_top,

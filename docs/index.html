@@ -100,6 +100,15 @@
 
   .chart-box { position: relative; height: 340px; }
 
+  .legend { display: flex; flex-wrap: wrap; gap: 8px 16px; justify-content: center; margin: 2px 0 10px; }
+  .legend .item { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; color: var(--text-secondary); cursor: pointer; user-select: none; }
+  .legend .item .sw { width: 10px; height: 10px; border-radius: 50%; flex: 0 0 auto; }
+  .legend .item .q { font-size: 11px; color: var(--muted); border: 1px solid var(--border); border-radius: 50%; width: 14px; height: 14px; display: inline-flex; align-items: center; justify-content: center; }
+  .legend .item.off { opacity: .45; }
+  .legend .item.off .name { text-decoration: line-through; }
+  .tip { position: fixed; z-index: 50; max-width: 300px; background: var(--surface-1); color: var(--text-primary); border: 1px solid var(--border); border-radius: 8px; padding: 8px 11px; font-size: 12px; line-height: 1.55; box-shadow: 0 6px 20px rgba(0,0,0,.18); pointer-events: none; }
+  .tip .tip-h { font-weight: 700; margin-bottom: 3px; }
+
   table { width: 100%; border-collapse: collapse; font-size: 13px; font-variant-numeric: tabular-nums; }
   th, td { text-align: right; padding: 6px 8px; border-bottom: 1px solid var(--grid); }
   th:first-child, td:first-child { text-align: left; }
@@ -153,6 +162,7 @@
         <button id="tabTable" type="button">表</button>
       </div>
     </div>
+    <div id="legend" class="legend"></div>
     <div class="chart-box" id="chartBox"><canvas id="trend"></canvas></div>
     <div id="tableBox" class="hidden"></div>
   </section>
@@ -171,6 +181,7 @@
   <footer id="footer"></footer>
   <div class="privacy">※ 個人情報保護のため、メンバー名・発言内容はこのダッシュボードには表示していません（集計値のみ）。週報本文は実行結果ページ／Artifactで限定閲覧できます。</div>
 </div>
+<div id="tip" class="tip hidden" role="tooltip"></div>
 
 <script src="./vendor/chart.umd.js"></script>
 <script>
@@ -245,7 +256,7 @@ async function main() {
     tension: 0.25,
   }));
 
-  new Chart(document.getElementById("trend"), {
+  const chart = new Chart(document.getElementById("trend"), {
     type: "line",
     data: { labels, datasets },
     options: {
@@ -253,7 +264,7 @@ async function main() {
       layout: { padding: { right: 44 } },
       interaction: { mode: "index", intersect: false },
       plugins: {
-        legend: { position: "top", labels: { color: cssVar("--text-secondary"), usePointStyle: true, boxWidth: 8, boxHeight: 8 } },
+        legend: { display: false }, // 定義ホバー付きのHTML凡例を使う
         tooltip: { titleColor: cssVar("--text-primary"), bodyColor: cssVar("--text-primary"), backgroundColor: cssVar("--surface-1"), borderColor: cssVar("--border"), borderWidth: 1 },
       },
       scales: {
@@ -262,6 +273,48 @@ async function main() {
       },
     },
     plugins: [endLabelPlugin],
+  });
+
+  // 定義ホバー付きHTML凡例（クリックで系列の表示/非表示）
+  const defs = data.metric_defs || {};
+  const legendEl = document.getElementById("legend");
+  legendEl.innerHTML = cols.map((c, i) => {
+    const def = (defs[c] || "").replace(/"/g, "&quot;");
+    return `<span class="item" data-i="${i}" data-label="${data.metric_labels[c]}" data-def="${def}" tabindex="0">
+      <span class="sw" style="background:${seriesColors[i]}"></span>
+      <span class="name">${data.metric_labels[c]}</span>
+      <span class="q" aria-hidden="true">?</span>
+    </span>`;
+  }).join("");
+
+  const tip = document.getElementById("tip");
+  const showTip = (el, x, y) => {
+    const def = el.dataset.def;
+    if (!def) return;
+    tip.innerHTML = `<div class="tip-h">${el.dataset.label}</div>${def}`;
+    tip.classList.remove("hidden");
+    const w = tip.offsetWidth || 300;
+    tip.style.left = Math.min(x + 14, window.innerWidth - w - 8) + "px";
+    tip.style.top = (y + 16) + "px";
+  };
+  const hideTip = () => tip.classList.add("hidden");
+
+  legendEl.querySelectorAll(".item").forEach((el) => {
+    el.addEventListener("mouseenter", (e) => showTip(el, e.clientX, e.clientY));
+    el.addEventListener("mousemove", (e) => showTip(el, e.clientX, e.clientY));
+    el.addEventListener("mouseleave", hideTip);
+    el.addEventListener("focus", () => {
+      const r = el.getBoundingClientRect();
+      showTip(el, r.left, r.bottom);
+    });
+    el.addEventListener("blur", hideTip);
+    el.addEventListener("click", () => {
+      const i = +el.dataset.i;
+      const vis = chart.isDatasetVisible(i);
+      chart.setDatasetVisibility(i, !vis);
+      el.classList.toggle("off", vis);
+      chart.update();
+    });
   });
 
   // 表ビュー（コントラスト緩和＝relief。全データを表でも提供）
