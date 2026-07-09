@@ -1,8 +1,8 @@
 {
-  "generated_at": "2026-07-03T16:45:45.770065+09:00",
+  "generated_at": "2026-07-09T23:13:55.795362+09:00",
   "period": {
-    "start": "2026-06-26",
-    "end": "2026-07-03"
+    "start": "2026-07-02",
+    "end": "2026-07-09"
   },
   "repo": "uni-scope/DHW",
   "workflow_url": "https://github.com/uni-scope/DHW/actions/workflows/weekly-report.yml",
@@ -26,23 +26,23 @@
     {
       "key": "new_member_count",
       "label": "新規参加者数",
-      "value": 89,
-      "prev": 47,
-      "delta": 42
+      "value": 21,
+      "prev": 82,
+      "delta": -61
     },
     {
       "key": "view_role_granted_count",
       "label": "DHUmember数",
-      "value": 42,
-      "prev": 31,
-      "delta": 11
+      "value": 18,
+      "prev": 40,
+      "delta": -22
     },
     {
       "key": "active_user_count",
       "label": "アクティブユーザー数",
-      "value": 113,
-      "prev": 61,
-      "delta": 52
+      "value": 33,
+      "prev": 107,
+      "delta": -74
     }
   ],
   "history": [
@@ -222,17 +222,53 @@
     },
     {
       "date": "2026-07-03",
-      "new_member_count": 10,
-      "view_role_granted_count": 6,
-      "active_user_count": 12
+      "new_member_count": 12,
+      "view_role_granted_count": 9,
+      "active_user_count": 16
+    },
+    {
+      "date": "2026-07-04",
+      "new_member_count": 2,
+      "view_role_granted_count": 4,
+      "active_user_count": 5
+    },
+    {
+      "date": "2026-07-05",
+      "new_member_count": 1,
+      "view_role_granted_count": 1,
+      "active_user_count": 2
+    },
+    {
+      "date": "2026-07-06",
+      "new_member_count": 2,
+      "view_role_granted_count": 2,
+      "active_user_count": 5
+    },
+    {
+      "date": "2026-07-07",
+      "new_member_count": 4,
+      "view_role_granted_count": 1,
+      "active_user_count": 4
+    },
+    {
+      "date": "2026-07-08",
+      "new_member_count": 0,
+      "view_role_granted_count": 1,
+      "active_user_count": 1
+    },
+    {
+      "date": "2026-07-09",
+      "new_member_count": 0,
+      "view_role_granted_count": 0,
+      "active_user_count": 0
     }
   ],
   "channels_top": [],
   "events": [],
   "totals": {
-    "member_count": 208,
+    "member_count": 219,
     "admin_role_count": 13,
-    "dhumember_count": 128,
+    "dhumember_count": 140,
     "view_role_name": "閲覧権限",
     "admin_role_name": "Administrator"
   }
