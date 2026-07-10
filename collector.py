@@ -48,6 +48,9 @@ class CollectedData:
     active_user_count: int = 0
     messages: list[MessageRecord] = field(default_factory=list)
     channel_message_counts: dict[str, int] = field(default_factory=dict)
+    # スレッド単位の投稿数（掲示板のスレッド／通常チャンネルのアクティブスレッド）。
+    # キーは (親チャンネル/掲示板名, スレッド名)。
+    thread_message_counts: dict[tuple[str, str], int] = field(default_factory=dict)
     # 日別の集計（CSV/グラフ用）
     daily_metrics: list[DailyMetric] = field(default_factory=list)
     # イベント（Discordスケジュールイベント）
@@ -176,11 +179,15 @@ async def _collect_with_client(
         perms = channel.permissions_for(view_role)
         return perms.view_channel and perms.read_message_history
 
-    def _add_ranking(name_key: str, message) -> None:
+    def _add_ranking(name_key: str, message, thread_name: str | None = None) -> None:
         data.channel_message_counts[name_key] = data.channel_message_counts.get(name_key, 0) + 1
+        if thread_name:
+            key = (name_key, thread_name)
+            data.thread_message_counts[key] = data.thread_message_counts.get(key, 0) + 1
+        display_name = f"{name_key} › {thread_name}" if thread_name else name_key
         data.messages.append(
             MessageRecord(
-                channel_name=name_key,
+                channel_name=display_name,
                 author_name=message.author.display_name,
                 content=message.content,
                 created_at=message.created_at,
@@ -201,7 +208,7 @@ async def _collect_with_client(
                     if m.author.bot:
                         continue
                     if m.created_at >= analysis_since:
-                        _add_ranking(name_key, m)
+                        _add_ranking(name_key, m, thread_name=th.name)
             except (discord.Forbidden, discord.HTTPException):
                 continue
 

@@ -17,6 +17,7 @@ from metrics import METRIC_COLUMNS, METRIC_DEFS_JA, METRIC_LABELS_JA
 DOCS_DIR = "docs"
 DATA_FILENAME = "data.json"
 TOP_CHANNELS = 5
+TOP_THREADS = 5
 
 
 def _normalize_history(history: pd.DataFrame) -> pd.DataFrame:
@@ -78,6 +79,16 @@ def write_dashboard_data(config: Config, data: CollectedData, history: pd.DataFr
         reverse=True,
     )[:TOP_CHANNELS]
 
+    threads_top = sorted(
+        (
+            {"channel": channel, "name": thread, "count": count}
+            for (channel, thread), count in data.thread_message_counts.items()
+            if count > 0
+        ),
+        key=lambda t: t["count"],
+        reverse=True,
+    )[:TOP_THREADS]
+
     events = [
         {
             "name": ev.name,
@@ -101,6 +112,7 @@ def write_dashboard_data(config: Config, data: CollectedData, history: pd.DataFr
         "kpis": _kpis(history, last_day),
         "history": history[["date", *METRIC_COLUMNS]].to_dict(orient="records"),
         "channels_top": channels_top,
+        "threads_top": threads_top,
         "events": events,
         # 現在時点のスナップショット（総数）。「閲覧権限」ロールは DHUmember として表記する。
         "totals": {

@@ -189,10 +189,15 @@
       <div id="channels"></div>
     </section>
     <section class="card">
-      <h2>イベント</h2>
-      <ul class="events" id="events"></ul>
+      <h2>スレッドの盛り上がり（直近1週間・公開チャンネルのみ）</h2>
+      <div id="threads"></div>
     </section>
   </div>
+
+  <section class="card">
+    <h2>イベント</h2>
+    <ul class="events" id="events"></ul>
+  </section>
 
   <footer id="footer"></footer>
   <div class="privacy">※ 個人情報保護のため、メンバー名・発言内容はこのダッシュボードには表示していません（集計値のみ）。週報本文は実行結果ページ／Artifactで限定閲覧できます。</div>
@@ -374,6 +379,21 @@ async function main() {
         <div class="bar-name" title="#${c.name}">#${c.name}</div>
         <div class="bar-track"><div class="bar-fill" style="width:${Math.max(2, Math.round(c.count / max * 100))}%"></div></div>
         <div class="bar-val">${fmt(c.count)}</div>
+      </div>`).join("");
+  }
+
+  // スレッドの盛り上がり（単一系列＝青一色、凡例不要）
+  const thEl = document.getElementById("threads");
+  const threadsTop = data.threads_top || [];
+  if (!threadsTop.length) {
+    thEl.innerHTML = `<div class="empty">対象期間にスレッド内の書き込みはありませんでした。</div>`;
+  } else {
+    const maxTh = Math.max(...threadsTop.map(t => t.count));
+    thEl.innerHTML = threadsTop.map(t => `
+      <div class="bar-row">
+        <div class="bar-name" title="${t.channel} › ${t.name}">${t.channel} › ${t.name}</div>
+        <div class="bar-track"><div class="bar-fill" style="width:${Math.max(2, Math.round(t.count / maxTh * 100))}%"></div></div>
+        <div class="bar-val">${fmt(t.count)}</div>
       </div>`).join("");
   }
 

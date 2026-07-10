@@ -10,6 +10,7 @@ from metrics import METRIC_COLUMNS, METRIC_LABELS_JA
 
 MAX_MESSAGES_IN_PROMPT = 800
 TOP_CHANNELS = 5  # チャンネルの盛り上がり上位表示数（3〜5）
+TOP_THREADS = 5  # スレッドの盛り上がり上位表示数
 
 
 def _extract_text(message: Message) -> str:
@@ -80,6 +81,21 @@ def _channel_top_block(data: CollectedData, top_n: int = TOP_CHANNELS) -> str:
     return "\n".join(f"- #{name}: {count}件" for name, count in ranked)
 
 
+def _thread_top_block(data: CollectedData, top_n: int = TOP_THREADS) -> str:
+    ranked = sorted(
+        (
+            (channel, thread, count)
+            for (channel, thread), count in data.thread_message_counts.items()
+            if count > 0
+        ),
+        key=lambda t: t[2],
+        reverse=True,
+    )[:top_n]
+    if not ranked:
+        return "（対象期間にスレッド内の書き込みはありませんでした）"
+    return "\n".join(f"- {channel} › {thread}: {count}件" for channel, thread, count in ranked)
+
+
 def _weekly_trend_block(history: pd.DataFrame, weeks: int = 8) -> str:
     if history is None or history.empty:
         return "（推移データがまだありません）"
@@ -140,6 +156,9 @@ def generate_weekly_report(
 # 2. チャンネル・掲示板の盛り上がり（公開チャンネルのみ・対象期間の投稿数・多い順）
 {_channel_top_block(data)}
 
+# 2b. スレッドの盛り上がり（公開チャンネル・掲示板配下のスレッド単位・投稿数・多い順）
+{_thread_top_block(data)}
+
 # 3. 登録イベント（立ち上がり・実施状況）
 {_events_block(config, data)}
 
@@ -153,6 +172,7 @@ def generate_weekly_report(
 - 上記の週次集計をもとに、参加者数・DHUmember数・アクティブ数などの増減トレンドを簡潔に述べる
 ## チャンネル・掲示板の盛り上がり
 - 投稿数の多い上位3〜5チャンネル（公開チャンネル・掲示板）を挙げ、各チャンネルで何が話題だったかをメッセージ履歴を根拠に1〜2行で要約する
+- 「スレッドの盛り上がり」に特に投稿数の多いスレッドがあれば、どのチャンネル/掲示板の何というスレッドかを明記して触れる
 ## イベント
 - 上記「登録イベント」をもとに、対象期間に立ち上がったイベントと、各イベントの実施状況（開催予定/開催中/終了など）をまとめる
 - 該当が無ければ「対象期間に新規イベントはありませんでした」とする
