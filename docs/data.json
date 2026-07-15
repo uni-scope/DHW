@@ -1,8 +1,8 @@
 {
-  "generated_at": "2026-07-10T16:03:03.382450+09:00",
+  "generated_at": "2026-07-15T12:05:41.056569+09:00",
   "period": {
-    "start": "2026-07-03",
-    "end": "2026-07-10"
+    "start": "2026-06-04",
+    "end": "2026-07-15"
   },
   "repo": "uni-scope/DHW",
   "workflow_url": "https://github.com/uni-scope/DHW/actions/workflows/weekly-report.yml",
@@ -26,23 +26,23 @@
     {
       "key": "new_member_count",
       "label": "新規参加者数",
-      "value": 10,
-      "prev": 91,
-      "delta": -81
+      "value": 15,
+      "prev": 33,
+      "delta": -18
     },
     {
       "key": "view_role_granted_count",
       "label": "DHUmember数",
       "value": 11,
-      "prev": 45,
-      "delta": -34
+      "prev": 26,
+      "delta": -15
     },
     {
       "key": "active_user_count",
       "label": "アクティブユーザー数",
-      "value": 54,
-      "prev": 123,
-      "delta": -69
+      "value": 47,
+      "prev": 87,
+      "delta": -40
     }
   ],
   "history": [
@@ -56,13 +56,13 @@
       "date": "2026-06-05",
       "new_member_count": 4,
       "view_role_granted_count": 4,
-      "active_user_count": 9
+      "active_user_count": 13
     },
     {
       "date": "2026-06-06",
       "new_member_count": 0,
       "view_role_granted_count": 0,
-      "active_user_count": 0
+      "active_user_count": 1
     },
     {
       "date": "2026-06-07",
@@ -74,31 +74,31 @@
       "date": "2026-06-08",
       "new_member_count": 1,
       "view_role_granted_count": 2,
-      "active_user_count": 6
+      "active_user_count": 7
     },
     {
       "date": "2026-06-09",
       "new_member_count": 0,
       "view_role_granted_count": 0,
-      "active_user_count": 0
+      "active_user_count": 1
     },
     {
       "date": "2026-06-10",
       "new_member_count": 1,
       "view_role_granted_count": 1,
-      "active_user_count": 3
+      "active_user_count": 5
     },
     {
       "date": "2026-06-11",
       "new_member_count": 0,
       "view_role_granted_count": 0,
-      "active_user_count": 1
+      "active_user_count": 4
     },
     {
       "date": "2026-06-12",
       "new_member_count": 1,
       "view_role_granted_count": 1,
-      "active_user_count": 2
+      "active_user_count": 3
     },
     {
       "date": "2026-06-13",
@@ -110,115 +110,115 @@
       "date": "2026-06-14",
       "new_member_count": 0,
       "view_role_granted_count": 0,
-      "active_user_count": 0
+      "active_user_count": 1
     },
     {
       "date": "2026-06-15",
-      "new_member_count": 32,
+      "new_member_count": 31,
       "view_role_granted_count": 24,
-      "active_user_count": 35
+      "active_user_count": 37
     },
     {
       "date": "2026-06-16",
       "new_member_count": 4,
       "view_role_granted_count": 0,
-      "active_user_count": 7
+      "active_user_count": 16
     },
     {
       "date": "2026-06-17",
       "new_member_count": 2,
       "view_role_granted_count": 4,
-      "active_user_count": 7
+      "active_user_count": 8
     },
     {
       "date": "2026-06-18",
       "new_member_count": 1,
       "view_role_granted_count": 2,
-      "active_user_count": 4
+      "active_user_count": 6
     },
     {
       "date": "2026-06-19",
       "new_member_count": 2,
       "view_role_granted_count": 0,
-      "active_user_count": 3
+      "active_user_count": 5
     },
     {
       "date": "2026-06-20",
       "new_member_count": 0,
       "view_role_granted_count": 1,
-      "active_user_count": 2
+      "active_user_count": 5
     },
     {
       "date": "2026-06-21",
       "new_member_count": 1,
       "view_role_granted_count": 0,
-      "active_user_count": 0
+      "active_user_count": 2
     },
     {
       "date": "2026-06-22",
       "new_member_count": 0,
       "view_role_granted_count": 0,
-      "active_user_count": 0
+      "active_user_count": 1
     },
     {
       "date": "2026-06-23",
       "new_member_count": 0,
       "view_role_granted_count": 0,
-      "active_user_count": 1
+      "active_user_count": 3
     },
     {
       "date": "2026-06-24",
       "new_member_count": 34,
       "view_role_granted_count": 21,
-      "active_user_count": 39
+      "active_user_count": 44
     },
     {
       "date": "2026-06-25",
       "new_member_count": 9,
       "view_role_granted_count": 5,
-      "active_user_count": 13
+      "active_user_count": 15
     },
     {
       "date": "2026-06-26",
       "new_member_count": 3,
       "view_role_granted_count": 4,
-      "active_user_count": 6
+      "active_user_count": 13
     },
     {
       "date": "2026-06-27",
       "new_member_count": 5,
       "view_role_granted_count": 2,
-      "active_user_count": 7
+      "active_user_count": 9
     },
     {
       "date": "2026-06-28",
       "new_member_count": 2,
       "view_role_granted_count": 4,
-      "active_user_count": 5
+      "active_user_count": 9
     },
     {
       "date": "2026-06-29",
       "new_member_count": 5,
       "view_role_granted_count": 6,
-      "active_user_count": 8
+      "active_user_count": 12
     },
     {
       "date": "2026-06-30",
       "new_member_count": 2,
       "view_role_granted_count": 0,
-      "active_user_count": 2
+      "active_user_count": 3
     },
     {
       "date": "2026-07-01",
       "new_member_count": 53,
       "view_role_granted_count": 16,
-      "active_user_count": 62
+      "active_user_count": 67
     },
     {
       "date": "2026-07-02",
       "new_member_count": 12,
       "view_role_granted_count": 8,
-      "active_user_count": 17
+      "active_user_count": 22
     },
     {
       "date": "2026-07-03",
@@ -264,40 +264,125 @@
     },
     {
       "date": "2026-07-10",
+      "new_member_count": 5,
+      "view_role_granted_count": 3,
+      "active_user_count": 9
+    },
+    {
+      "date": "2026-07-11",
       "new_member_count": 1,
       "view_role_granted_count": 2,
-      "active_user_count": 5
+      "active_user_count": 6
+    },
+    {
+      "date": "2026-07-12",
+      "new_member_count": 1,
+      "view_role_granted_count": 1,
+      "active_user_count": 10
+    },
+    {
+      "date": "2026-07-13",
+      "new_member_count": 5,
+      "view_role_granted_count": 1,
+      "active_user_count": 6
+    },
+    {
+      "date": "2026-07-14",
+      "new_member_count": 2,
+      "view_role_granted_count": 4,
+      "active_user_count": 7
+    },
+    {
+      "date": "2026-07-15",
+      "new_member_count": 1,
+      "view_role_granted_count": 0,
+      "active_user_count": 3
     }
   ],
   "channels_top": [
     {
       "name": "共創・実践掲示板",
-      "count": 59
+      "count": 627
     },
     {
       "name": "①なんでも雑談・相談",
-      "count": 24
-    },
-    {
-      "name": "学長目安箱",
-      "count": 14
-    },
-    {
-      "name": "宣伝しよう！",
-      "count": 12
+      "count": 132
     },
     {
       "name": "学長連絡・相談室",
-      "count": 11
+      "count": 87
+    },
+    {
+      "name": "②なんでも雑談・相談",
+      "count": 73
+    },
+    {
+      "name": "学長目安箱",
+      "count": 51
     }
   ],
-  "events": [],
+  "threads_top": [
+    {
+      "channel": "共創・実践掲示板",
+      "name": "6/15 広報",
+      "count": 79
+    },
+    {
+      "channel": "共創・実践掲示板",
+      "name": "学長のスタンプを作ろう",
+      "count": 54
+    },
+    {
+      "channel": "共創・実践掲示板",
+      "name": "6/15進行台本",
+      "count": 48
+    },
+    {
+      "channel": "共創・実践掲示板",
+      "name": "PodCast",
+      "count": 45
+    },
+    {
+      "channel": "共創・実践掲示板",
+      "name": "6/15告知画像制作",
+      "count": 39
+    }
+  ],
+  "events": [
+    {
+      "name": "現実科学レクチャーVol.72",
+      "status": "終了/削除済みの可能性",
+      "scheduled_start": null,
+      "user_count": null,
+      "created_in_period": true
+    },
+    {
+      "name": "服のこと ゆるっと 話す会",
+      "status": "終了/削除済みの可能性",
+      "scheduled_start": null,
+      "user_count": null,
+      "created_in_period": true
+    },
+    {
+      "name": "「現実を否定する座談会」",
+      "status": "終了/削除済みの可能性",
+      "scheduled_start": null,
+      "user_count": null,
+      "created_in_period": true
+    },
+    {
+      "name": "Discordプレオープンイベント協力者求む！",
+      "status": "終了/削除済みの可能性",
+      "scheduled_start": null,
+      "user_count": null,
+      "created_in_period": true
+    }
+  ],
   "totals": {
-    "member_count": 220,
+    "member_count": 233,
     "admin_role_count": 13,
-    "dhumember_count": 142,
+    "dhumember_count": 150,
     "view_role_name": "閲覧権限",
     "admin_role_name": "Administrator"
-  },
-  "threads_top": []
+  }
 }
