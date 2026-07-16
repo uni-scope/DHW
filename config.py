@@ -41,3 +41,7 @@ class Config:
     metrics_graph_path: str = field(
         default_factory=lambda: os.environ.get("METRICS_GRAPH_PATH", "metrics_graph.png")
     )
+    # チャンネル/スレッドの盛り上がりグラフ（横棒）の出力先
+    activity_graph_path: str = field(
+        default_factory=lambda: os.environ.get("ACTIVITY_GRAPH_PATH", "activity_graph.png")
+    )

@@ -96,6 +96,49 @@ def append_metrics(config: Config, data: CollectedData) -> pd.DataFrame:
     return history
 
 
+def render_activity_graph(config: Config, data: CollectedData, top_n: int = 5) -> None:
+    """チャンネル/スレッドの盛り上がり（投稿数上位）を横棒グラフでPNG出力する。"""
+    _configure_japanese_font()
+
+    channels = sorted(
+        ((name, count) for name, count in data.channel_message_counts.items() if count > 0),
+        key=lambda kv: kv[1],
+        reverse=True,
+    )[:top_n]
+    # 区切りは全角「＞」（IPAGothic等の日本語フォントに「›」グリフが無いため）
+    threads = sorted(
+        ((f"{ch} ＞ {th}", count) for (ch, th), count in data.thread_message_counts.items() if count > 0),
+        key=lambda kv: kv[1],
+        reverse=True,
+    )[:top_n]
+
+    def _shorten(s: str, limit: int = 30) -> str:
+        return s if len(s) <= limit else s[: limit - 1] + "…"
+
+    fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(10, 7))
+    sections = (
+        (ax1, channels, "チャンネル・掲示板の盛り上がり（直近1週間・公開チャンネルのみ）"),
+        (ax2, threads, "スレッドの盛り上がり（直近1週間）"),
+    )
+    for ax, items, title in sections:
+        ax.set_title(title, fontsize=11)
+        if not items:
+            ax.text(0.5, 0.5, "対象期間に投稿はありませんでした", ha="center", va="center", color="#898781")
+            ax.axis("off")
+            continue
+        names = [_shorten(name) for name, _ in items]
+        counts = [count for _, count in items]
+        bars = ax.barh(names, counts, color="#2a78d6", height=0.55)
+        ax.invert_yaxis()  # 最多を一番上に
+        ax.bar_label(bars, padding=4, fontsize=10)
+        ax.set_xlabel("投稿数")
+        ax.margins(x=0.08)
+
+    fig.tight_layout()
+    fig.savefig(config.activity_graph_path)
+    plt.close(fig)
+
+
 def render_graph(config: Config, history: pd.DataFrame) -> None:
     _configure_japanese_font()
     fig, ax = plt.subplots(figsize=(10, 6))

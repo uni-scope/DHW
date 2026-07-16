@@ -127,11 +127,7 @@
   th:first-child, td:first-child { text-align: left; }
   thead th { color: var(--text-secondary); font-weight: 600; }
 
-  .bar-row { display: grid; grid-template-columns: 150px 1fr auto; align-items: center; gap: 10px; margin: 8px 0; }
-  .bar-name { font-size: 13px; color: var(--text-primary); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-  .bar-track { height: 16px; }
-  .bar-fill { height: 16px; background: var(--series-1); border-radius: 0 4px 4px 0; min-width: 2px; }
-  .bar-val { font-size: 13px; color: var(--text-secondary); font-variant-numeric: tabular-nums; }
+  .chart-box-sm { position: relative; }
 
   ul.events { list-style: none; margin: 0; padding: 0; }
   ul.events li { padding: 10px 0; border-bottom: 1px solid var(--grid); }
@@ -368,34 +364,71 @@ async function main() {
   tabChart.onclick = () => { tabChart.classList.add("on"); tabTable.classList.remove("on"); chartBox.classList.remove("hidden"); tableBox.classList.add("hidden"); };
   tabTable.onclick = () => { tabTable.classList.add("on"); tabChart.classList.remove("on"); tableBox.classList.remove("hidden"); chartBox.classList.add("hidden"); };
 
-  // チャンネルの盛り上がり（単一系列＝青一色、凡例不要）
-  const chEl = document.getElementById("channels");
-  if (!data.channels_top.length) {
-    chEl.innerHTML = `<div class="empty">対象期間に書き込みはありませんでした。</div>`;
-  } else {
-    const max = Math.max(...data.channels_top.map(c => c.count));
-    chEl.innerHTML = data.channels_top.map(c => `
-      <div class="bar-row">
-        <div class="bar-name" title="#${c.name}">#${c.name}</div>
-        <div class="bar-track"><div class="bar-fill" style="width:${Math.max(2, Math.round(c.count / max * 100))}%"></div></div>
-        <div class="bar-val">${fmt(c.count)}</div>
-      </div>`).join("");
+  // チャンネル/スレッドの盛り上がり: 横棒グラフ（単一系列＝青一色、凡例不要）
+  function rankBarChart(containerId, canvasId, items, labelFn, tickFn) {
+    const el = document.getElementById(containerId);
+    if (!items.length) {
+      el.innerHTML = `<div class="empty">対象期間に投稿はありませんでした。</div>`;
+      return;
+    }
+    const h = items.length * 44 + 40;
+    el.innerHTML = `<div class="chart-box-sm" style="height:${h}px"><canvas id="${canvasId}"></canvas></div>`;
+    const labels = items.map(labelFn);            // フル名称（ツールチップ表示用）
+    const shortLabels = items.map(tickFn || labelFn);  // 軸の目盛り表示用（短縮）
+    const cut = (s, n) => (s.length > n ? s.slice(0, n - 1) + "…" : s);
+    // 各バーの先端に値ラベルを描く（バー→値は先端、の慣例）
+    const valueLabelPlugin = {
+      id: canvasId + "-vals",
+      afterDatasetsDraw(c) {
+        const { ctx } = c;
+        ctx.save();
+        ctx.font = "600 11px system-ui, sans-serif";
+        ctx.fillStyle = cssVar("--text-primary");
+        ctx.textBaseline = "middle";
+        c.getDatasetMeta(0).data.forEach((bar, i) => {
+          ctx.fillText(fmt(c.data.datasets[0].data[i]), bar.x + 6, bar.y);
+        });
+        ctx.restore();
+      },
+    };
+    new Chart(document.getElementById(canvasId), {
+      type: "bar",
+      data: {
+        labels,
+        datasets: [{
+          data: items.map(i => i.count),
+          backgroundColor: cssVar("--series-1"),
+          maxBarThickness: 22,
+          borderRadius: 4,
+          borderSkipped: "start",  // データ側の端だけ丸め、ベースラインは直角
+        }],
+      },
+      options: {
+        indexAxis: "y",
+        responsive: true, maintainAspectRatio: false,
+        layout: { padding: { right: 44 } },
+        plugins: {
+          legend: { display: false },
+          tooltip: { titleColor: cssVar("--text-primary"), bodyColor: cssVar("--text-primary"), backgroundColor: cssVar("--surface-1"), borderColor: cssVar("--border"), borderWidth: 1 },
+        },
+        scales: {
+          x: { beginAtZero: true, grid: { color: cssVar("--grid") }, ticks: { color: cssVar("--muted"), precision: 0 }, border: { color: cssVar("--baseline") } },
+          y: {
+            grid: { display: false }, border: { color: cssVar("--baseline") },
+            ticks: {
+              color: cssVar("--text-secondary"), autoSkip: false,
+              callback: (v, i) => cut(shortLabels[i], 15),
+            },
+          },
+        },
+      },
+      plugins: [valueLabelPlugin],
+    });
   }
 
-  // スレッドの盛り上がり（単一系列＝青一色、凡例不要）
-  const thEl = document.getElementById("threads");
-  const threadsTop = data.threads_top || [];
-  if (!threadsTop.length) {
-    thEl.innerHTML = `<div class="empty">対象期間にスレッド内の書き込みはありませんでした。</div>`;
-  } else {
-    const maxTh = Math.max(...threadsTop.map(t => t.count));
-    thEl.innerHTML = threadsTop.map(t => `
-      <div class="bar-row">
-        <div class="bar-name" title="${t.channel} › ${t.name}">${t.channel} › ${t.name}</div>
-        <div class="bar-track"><div class="bar-fill" style="width:${Math.max(2, Math.round(t.count / maxTh * 100))}%"></div></div>
-        <div class="bar-val">${fmt(t.count)}</div>
-      </div>`).join("");
-  }
+  // スレッドは目盛りにスレッド名のみ表示し、親チャンネルはツールチップ（フル名称）で確認
+  rankBarChart("channels", "chChart", data.channels_top || [], c => "#" + c.name);
+  rankBarChart("threads", "thChart", data.threads_top || [], t => `${t.channel} › ${t.name}`, t => t.name);
 
   // イベント
   const evEl = document.getElementById("events");

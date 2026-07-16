@@ -52,8 +52,9 @@ python main.py --weekly --since 2026-06-25 --until 2026-07-02   # 期間を明�
 - `reports/YYYY-MM-DD_weekly.md`（管理者向け週報。ファイル名は対象期間の最終日）
 - `metrics_history.csv`（指標を**1日1行**で蓄積。同じ日付は上書き）
 - `metrics_graph.png`（指標推移グラフ。**凡例・軸ラベルは日本語**）
+- `activity_graph.png`（チャンネル・掲示板／スレッドの盛り上がり 横棒グラフ）
 
-`metrics_history.csv` / `metrics_graph.png` はリポジトリで追跡し、実行のたびに更新・蓄積されます。
+`metrics_history.csv` / `metrics_graph.png` / `activity_graph.png` はリポジトリで追跡し、実行のたびに更新・蓄積されます。
 
 > **グラフの日本語表示**: 日本語対応フォント（例: IPAGothic / Noto Sans CJK JP）が必要です。
 > 見つからない場合は凡例が豆腐（□）になります。Ubuntu例: `sudo apt-get install -y fonts-ipafont-gothic`
