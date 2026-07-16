@@ -45,3 +45,7 @@ class Config:
     activity_graph_path: str = field(
         default_factory=lambda: os.environ.get("ACTIVITY_GRAPH_PATH", "activity_graph.png")
     )
+    # チャンネル/スレッドの盛り上がり 日別履歴CSV
+    activity_csv_path: str = field(
+        default_factory=lambda: os.environ.get("ACTIVITY_CSV_PATH", "activity_history.csv")
+    )

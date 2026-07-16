@@ -53,8 +53,9 @@ python main.py --weekly --since 2026-06-25 --until 2026-07-02   # 期間を明�
 - `metrics_history.csv`（指標を**1日1行**で蓄積。同じ日付は上書き）
 - `metrics_graph.png`（指標推移グラフ。**凡例・軸ラベルは日本語**）
 - `activity_graph.png`（チャンネル・掲示板／スレッドの盛り上がり 横棒グラフ）
+- `activity_history.csv`（チャンネル・スレッド別の投稿数を**日別**で蓄積。ダッシュボードの推移グラフの元データ）
 
-`metrics_history.csv` / `metrics_graph.png` / `activity_graph.png` はリポジトリで追跡し、実行のたびに更新・蓄積されます。
+`metrics_history.csv` / `metrics_graph.png` / `activity_graph.png` / `activity_history.csv` はリポジトリで追跡し、実行のたびに更新・蓄積されます。
 
 > **グラフの日本語表示**: 日本語対応フォント（例: IPAGothic / Noto Sans CJK JP）が必要です。
 > 見つからない場合は凡例が豆腐（□）になります。Ubuntu例: `sudo apt-get install -y fonts-ipafont-gothic`
@@ -86,7 +87,9 @@ python main.py --since 2026-06-04 --until 2026-07-02 --skip-report
 
 `docs/` に常設ダッシュボード（`docs/index.html`）があり、実行のたびに `docs/data.json` が更新されます。
 現在の総数（メンバー総数・Administrator・DHUmember）・KPIタイル（前週比つき）・指標の推移グラフ
-（インタラクティブ／表ビュー切替）・チャンネルの盛り上がり Top5・イベント一覧を表示し、
+（インタラクティブ／表ビュー切替）・**盛り上がりの推移**（チャンネル・スレッド別の日別投稿数。
+プルダウンで最大8件まで複数選択、チャンネル＝実線／スレッド＝破線で区別。デフォルト表示は
+週報で言及される上位チャンネル）・チャンネル/スレッドの盛り上がり Top5・イベント一覧を表示し、
 「週報を生成」ボタンから GitHub Actions の実行画面へ遷移できます。
 
 **プライバシー**: ダッシュボードは**集計値のみ**を表示します（メンバー名・発言内容は出しません）。

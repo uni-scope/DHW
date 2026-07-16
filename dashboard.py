@@ -18,6 +18,7 @@ DOCS_DIR = "docs"
 DATA_FILENAME = "data.json"
 TOP_CHANNELS = 5
 TOP_THREADS = 5
+ACTIVITY_EXPORT_DAYS = 120  # 推移グラフとしてエクスポートする日数の上限
 
 
 def _normalize_history(history: pd.DataFrame) -> pd.DataFrame:
@@ -60,7 +61,40 @@ def _kpis(history: pd.DataFrame, last_day) -> list[dict]:
     return kpis
 
 
-def write_dashboard_data(config: Config, data: CollectedData, history: pd.DataFrame) -> str:
+def _activity_payload(activity: pd.DataFrame | None) -> dict:
+    """日別の盛り上がり履歴を、日付軸＋系列（0埋め済み counts 配列）の形にする。"""
+    empty = {"dates": [], "series": []}
+    if activity is None or activity.empty:
+        return empty
+    df = activity.copy()
+    df["date"] = df["date"].astype(str)
+    dates_dt = pd.to_datetime(df["date"])
+    cutoff = dates_dt.max() - pd.Timedelta(days=ACTIVITY_EXPORT_DAYS - 1)
+    df = df[dates_dt >= cutoff]
+    if df.empty:
+        return empty
+
+    date_range = pd.date_range(pd.to_datetime(df["date"]).min(), pd.to_datetime(df["date"]).max(), freq="D")
+    dates = [d.strftime("%Y-%m-%d") for d in date_range]
+
+    series = []
+    for (kind, name), group in df.groupby(["kind", "name"]):
+        by_date = dict(zip(group["date"], group["count"]))
+        series.append(
+            {
+                "kind": kind,
+                "name": name,
+                "total": int(group["count"].sum()),
+                "counts": [int(by_date.get(d, 0)) for d in dates],
+            }
+        )
+    series.sort(key=lambda s: s["total"], reverse=True)
+    return {"dates": dates, "series": series}
+
+
+def write_dashboard_data(
+    config: Config, data: CollectedData, history: pd.DataFrame, activity: pd.DataFrame | None = None
+) -> str:
     tz = config.timezone
     os.makedirs(DOCS_DIR, exist_ok=True)
     history = _normalize_history(history)
@@ -113,6 +147,9 @@ def write_dashboard_data(config: Config, data: CollectedData, history: pd.DataFr
         "history": history[["date", *METRIC_COLUMNS]].to_dict(orient="records"),
         "channels_top": channels_top,
         "threads_top": threads_top,
+        # 盛り上がりの推移（日別）と、デフォルト表示する系列（＝週報で言及される上位チャンネル）
+        "activity": _activity_payload(activity),
+        "activity_defaults": [{"kind": "channel", "name": c["name"]} for c in channels_top],
         "events": events,
         # 現在時点のスナップショット（総数）。「閲覧権限」ロールは DHUmember として表記する。
         "totals": {

@@ -7,7 +7,7 @@ from anthropic import Anthropic
 from collector import run_collect
 from config import Config
 from dashboard import write_dashboard_data
-from metrics import append_metrics, render_activity_graph, render_graph
+from metrics import append_activity, append_metrics, render_activity_graph, render_graph
 from reporter import generate_weekly_report
 
 
@@ -82,9 +82,10 @@ def main() -> None:
     data = run_collect(config, since, until, analysis_since)
 
     history = append_metrics(config, data)
+    activity = append_activity(config, data)
     render_graph(config, history)
     render_activity_graph(config, data)
-    dashboard_path = write_dashboard_data(config, data, history)
+    dashboard_path = write_dashboard_data(config, data, history, activity)
 
     first_day = since.astimezone(tz).date()
     last_day = (until - timedelta(microseconds=1)).astimezone(tz).date()
@@ -93,6 +94,7 @@ def main() -> None:
     print(f"指標CSVを更新しました: {config.metrics_csv_path}（{len(data.daily_metrics)}日分）")
     print(f"グラフを更新しました: {config.metrics_graph_path}")
     print(f"盛り上がりグラフを更新しました: {config.activity_graph_path}")
+    print(f"盛り上がり履歴CSVを更新しました: {config.activity_csv_path}")
     print(f"ダッシュボードデータを更新しました: {dashboard_path}")
 
     if args.skip_report:

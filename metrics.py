@@ -96,6 +96,36 @@ def append_metrics(config: Config, data: CollectedData) -> pd.DataFrame:
     return history
 
 
+ACTIVITY_COLUMNS = ["date", "kind", "name", "count"]
+
+
+def append_activity(config: Config, data: CollectedData) -> pd.DataFrame:
+    """チャンネル/スレッドの日別投稿数を activity_history.csv にupsertする。
+
+    今回収集した日付（daily_metrics と同じ収集期間）の既存行を置き換えるため、
+    同じ期間を再実行しても重複しない。
+    """
+    rows = [
+        {"date": day, "kind": kind, "name": name, "count": count}
+        for (kind, name, day), count in data.activity_daily_counts.items()
+    ]
+
+    try:
+        history = pd.read_csv(config.activity_csv_path, dtype={"date": str, "kind": str, "name": str})
+    except FileNotFoundError:
+        history = pd.DataFrame(columns=ACTIVITY_COLUMNS)
+
+    collected_dates = {m.date for m in data.daily_metrics}
+    history = history[~history["date"].isin(collected_dates)]
+    if rows:
+        history = pd.concat([history, pd.DataFrame(rows)], ignore_index=True)
+    history = history[ACTIVITY_COLUMNS]
+    history["count"] = history["count"].fillna(0).astype(int)
+    history = history.sort_values(["date", "kind", "name"]).reset_index(drop=True)
+    history.to_csv(config.activity_csv_path, index=False)
+    return history
+
+
 def render_activity_graph(config: Config, data: CollectedData, top_n: int = 5) -> None:
     """チャンネル/スレッドの盛り上がり（投稿数上位）を横棒グラフでPNG出力する。"""
     _configure_japanese_font()

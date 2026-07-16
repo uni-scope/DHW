@@ -51,6 +51,9 @@ class CollectedData:
     # スレッド単位の投稿数（掲示板のスレッド／通常チャンネルのアクティブスレッド）。
     # キーは (親チャンネル/掲示板名, スレッド名)。
     thread_message_counts: dict[tuple[str, str], int] = field(default_factory=dict)
+    # 盛り上がりの日別履歴。キーは (kind, name, date)。kind は "channel" | "thread"、
+    # thread の name は「親名 › スレッド名」。収集期間の全カレンダー日を対象（分析窓に限らない）。
+    activity_daily_counts: dict[tuple[str, str, str], int] = field(default_factory=dict)
     # 日別の集計（CSV/グラフ用）
     daily_metrics: list[DailyMetric] = field(default_factory=list)
     # イベント（Discordスケジュールイベント）
@@ -194,6 +197,10 @@ async def _collect_with_client(
             )
         )
 
+    def _add_activity(kind: str, name: str, message) -> None:
+        akey = (kind, name, _day_key(message.created_at, tz))
+        data.activity_daily_counts[akey] = data.activity_daily_counts.get(akey, 0) + 1
+
     async def _count_threads_for_ranking(parent, name_key: str, include_archived: bool) -> None:
         threads = list(getattr(parent, "threads", []))
         if include_archived:
@@ -207,6 +214,7 @@ async def _collect_with_client(
                 async for m in th.history(limit=None, after=since, before=until, oldest_first=True):
                     if m.author.bot:
                         continue
+                    _add_activity("thread", f"{name_key} › {th.name}", m)
                     if m.created_at >= analysis_since:
                         _add_ranking(name_key, m, thread_name=th.name)
             except (discord.Forbidden, discord.HTTPException):
@@ -226,9 +234,12 @@ async def _collect_with_client(
             day = _day_key(message.created_at, tz)
             # アクティブユーザー数は日別・全期間で集計
             active_by_day[day].add(message.author.id)
-            # 盛り上がり・レポート本文は分析対象期間（直近1週間）＆公開チャンネルのみ
-            if ranking and message.created_at >= analysis_since:
-                _add_ranking(channel.name, message)
+            if ranking:
+                # 盛り上がりの日別履歴は収集期間の全日を対象
+                _add_activity("channel", channel.name, message)
+                # ランキング・レポート本文は分析対象期間（直近1週間）のみ
+                if message.created_at >= analysis_since:
+                    _add_ranking(channel.name, message)
         # 公開チャンネル配下のアクティブスレッドも投稿数に含める
         if ranking:
             await _count_threads_for_ranking(channel, channel.name, include_archived=False)
