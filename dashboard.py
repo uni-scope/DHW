@@ -4,6 +4,8 @@
 チャンネル別の件数、イベントの状態）のみをエクスポートする。
 """
 
+import base64
+import hashlib
 import json
 import os
 from datetime import timedelta
@@ -16,6 +18,8 @@ from metrics import METRIC_COLUMNS, METRIC_DEFS_JA, METRIC_LABELS_JA
 
 DOCS_DIR = "docs"
 DATA_FILENAME = "data.json"
+ENC_FILENAME = "data.enc"  # DASHBOARD_PASSWORD 設定時の暗号化データ
+KDF_ITERATIONS = 310_000
 TOP_CHANNELS = 5
 TOP_THREADS = 5
 ACTIVITY_EXPORT_DAYS = 120  # 推移グラフとしてエクスポートする日数の上限
@@ -92,6 +96,32 @@ def _activity_payload(activity: pd.DataFrame | None) -> dict:
     return {"dates": dates, "series": series}
 
 
+def _write_encrypted(payload: dict, password: str, path: str) -> None:
+    """payload を AES-256-GCM で暗号化して書き出す（鍵は PBKDF2-SHA256 で導出）。
+
+    ブラウザ側は WebCrypto（PBKDF2 + AES-GCM）で同じ手順で復号する。
+    """
+    from cryptography.hazmat.primitives.ciphers.aead import AESGCM
+
+    raw = json.dumps(payload, ensure_ascii=False).encode("utf-8")
+    salt = os.urandom(16)
+    iv = os.urandom(12)
+    key = hashlib.pbkdf2_hmac("sha256", password.encode("utf-8"), salt, KDF_ITERATIONS, dklen=32)
+    ciphertext = AESGCM(key).encrypt(iv, raw, None)
+
+    b64 = lambda b: base64.b64encode(b).decode("ascii")  # noqa: E731
+    envelope = {
+        "v": 1,
+        "kdf": "PBKDF2-SHA256",
+        "iter": KDF_ITERATIONS,
+        "salt": b64(salt),
+        "iv": b64(iv),
+        "ct": b64(ciphertext),
+    }
+    with open(path, "w", encoding="utf-8") as f:
+        json.dump(envelope, f)
+
+
 def write_dashboard_data(
     config: Config, data: CollectedData, history: pd.DataFrame, activity: pd.DataFrame | None = None
 ) -> str:
@@ -161,7 +191,20 @@ def write_dashboard_data(
         },
     }
 
-    path = os.path.join(DOCS_DIR, DATA_FILENAME)
-    with open(path, "w", encoding="utf-8") as f:
+    plain_path = os.path.join(DOCS_DIR, DATA_FILENAME)
+    enc_path = os.path.join(DOCS_DIR, ENC_FILENAME)
+
+    password = os.environ.get("DASHBOARD_PASSWORD", "")
+    if password:
+        # パスワード運用時: 暗号化データのみを配信し、平文は削除する
+        _write_encrypted(payload, password, enc_path)
+        if os.path.exists(plain_path):
+            os.remove(plain_path)
+        return enc_path
+
+    # パスワード未設定時（ローカル開発など）は従来どおり平文
+    with open(plain_path, "w", encoding="utf-8") as f:
         json.dump(payload, f, ensure_ascii=False, indent=2)
-    return path
+    if os.path.exists(enc_path):
+        os.remove(enc_path)
+    return plain_path

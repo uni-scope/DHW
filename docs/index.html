@@ -137,6 +137,25 @@
 
   .chart-box-sm { position: relative; }
 
+  .lock {
+    position: fixed; inset: 0; z-index: 100;
+    background: var(--page);
+    display: flex; align-items: center; justify-content: center;
+  }
+  .lock-card {
+    background: var(--surface-1); border: 1px solid var(--border); border-radius: 14px;
+    padding: 28px 30px; width: min(360px, 90vw);
+    display: flex; flex-direction: column; gap: 12px;
+  }
+  .lock-card h2 { font-size: 17px; margin: 0; }
+  .lock-card p { margin: 0; font-size: 13px; color: var(--text-secondary); }
+  .lock-card input {
+    font: inherit; padding: 10px 12px; border-radius: 8px;
+    border: 1px solid var(--border); background: var(--page); color: var(--text-primary);
+  }
+  .lock-card .btn { justify-content: center; cursor: pointer; border: 0; font: inherit; }
+  .lock-err { font-size: 12px; color: var(--bad); }
+
   .dd { position: relative; }
   .dd-menu {
     position: absolute; right: 0; top: calc(100% + 6px); z-index: 40;
@@ -236,6 +255,15 @@
   <div class="privacy">※ 個人情報保護のため、メンバー名・発言内容はこのダッシュボードには表示していません（集計値のみ）。週報本文は実行結果ページ／Artifactで限定閲覧できます。</div>
 </div>
 <div id="tip" class="tip hidden" role="tooltip"></div>
+<div id="lock" class="lock hidden">
+  <form class="lock-card" id="lockForm">
+    <h2>🔒 DHW コミュニティ ダッシュボード</h2>
+    <p>閲覧にはパスワードが必要です。</p>
+    <input type="password" id="lockPw" placeholder="パスワード" autocomplete="current-password" autofocus>
+    <button class="btn primary" type="submit">開く</button>
+    <div id="lockErr" class="lock-err hidden">パスワードが違います。</div>
+  </form>
+</div>
 
 <script src="./vendor/chart.umd.js"></script>
 <script>
@@ -274,8 +302,55 @@ const endLabelPlugin = {
   }
 };
 
+// 暗号化データ（data.enc）の復号: PBKDF2-SHA256 で鍵導出 → AES-256-GCM
+async function decryptPayload(enc, password) {
+  const b64 = (s) => Uint8Array.from(atob(s), c => c.charCodeAt(0));
+  const baseKey = await crypto.subtle.importKey(
+    "raw", new TextEncoder().encode(password), "PBKDF2", false, ["deriveKey"]);
+  const key = await crypto.subtle.deriveKey(
+    { name: "PBKDF2", salt: b64(enc.salt), iterations: enc.iter, hash: "SHA-256" },
+    baseKey, { name: "AES-GCM", length: 256 }, false, ["decrypt"]);
+  const plain = await crypto.subtle.decrypt({ name: "AES-GCM", iv: b64(enc.iv) }, key, b64(enc.ct));
+  return JSON.parse(new TextDecoder().decode(plain));
+}
+
+async function loadData() {
+  // 暗号化データがあればパスワードを要求。無ければ平文（ローカル開発など）へフォールバック。
+  const encRes = await fetch("./data.enc", { cache: "no-store" });
+  if (!encRes.ok) {
+    return fetch("./data.json", { cache: "no-store" }).then(r => r.json());
+  }
+  const enc = await encRes.json();
+
+  // 同一タブ内は再入力不要（sessionStorage）
+  const saved = sessionStorage.getItem("dhw_dash_pw");
+  if (saved !== null) {
+    try { return await decryptPayload(enc, saved); }
+    catch (e) { sessionStorage.removeItem("dhw_dash_pw"); }
+  }
+
+  const lock = document.getElementById("lock");
+  lock.classList.remove("hidden");
+  document.getElementById("lockPw").focus();
+  return new Promise((resolve) => {
+    document.getElementById("lockForm").addEventListener("submit", async (ev) => {
+      ev.preventDefault();
+      const pw = document.getElementById("lockPw").value;
+      try {
+        const d = await decryptPayload(enc, pw);
+        sessionStorage.setItem("dhw_dash_pw", pw);
+        lock.classList.add("hidden");
+        resolve(d);
+      } catch (e) {
+        document.getElementById("lockErr").classList.remove("hidden");
+        document.getElementById("lockPw").select();
+      }
+    });
+  });
+}
+
 async function main() {
-  const data = await fetch("./data.json", { cache: "no-store" }).then(r => r.json());
+  const data = await loadData();
 
   document.getElementById("period").textContent =
     `対象期間: ${data.period.start} 〜 ${data.period.end}（直近1週間）`;

@@ -4,7 +4,8 @@ name: Weekly community report
 # 対象期間は「生成日から遡って1週間」（既定）。since/until で明示指定も可能。
 #
 # 必要な設定:
-#   - Secrets:   DISCORD_TOKEN, ANTHROPIC_API_KEY, GUILD_ID, INTRO_CHANNEL_ID
+#   - Secrets:   DISCORD_TOKEN, ANTHROPIC_API_KEY, GUILD_ID, INTRO_CHANNEL_ID,
+#                DASHBOARD_PASSWORD（ダッシュボード閲覧パスワード）
 #   - (任意) Variables: EXCLUDE_CHANNEL_IDS
 
 on:
@@ -47,6 +48,15 @@ jobs:
       - name: Install dependencies
         run: pip install -r requirements.txt
 
+      - name: Check dashboard password secret
+        env:
+          DASHBOARD_PASSWORD: ${{ secrets.DASHBOARD_PASSWORD }}
+        run: |
+          if [ -z "$DASHBOARD_PASSWORD" ]; then
+            echo "::error::Secrets に DASHBOARD_PASSWORD が未設定です。ダッシュボードをパスワード保護するため、Settings → Secrets and variables → Actions で DASHBOARD_PASSWORD を登録してください。"
+            exit 1
+          fi
+
       - name: Generate weekly report
         env:
           DISCORD_TOKEN: ${{ secrets.DISCORD_TOKEN }}
@@ -54,6 +64,7 @@ jobs:
           GUILD_ID: ${{ secrets.GUILD_ID }}
           INTRO_CHANNEL_ID: ${{ secrets.INTRO_CHANNEL_ID }}
           EXCLUDE_CHANNEL_IDS: ${{ vars.EXCLUDE_CHANNEL_IDS }}
+          DASHBOARD_PASSWORD: ${{ secrets.DASHBOARD_PASSWORD }}
           TIMEZONE: Asia/Tokyo
         run: |
           python main.py --weekly \
@@ -77,7 +88,8 @@ jobs:
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add metrics_history.csv metrics_graph.png activity_graph.png activity_history.csv docs/data.json
+          # docs/ を丸ごとステージ: data.enc の追加と平文 data.json の削除を両方拾う
+          git add metrics_history.csv metrics_graph.png activity_graph.png activity_history.csv docs/
           if git diff --cached --quiet; then
             echo "指標に変化がないためコミットをスキップします。"
           else
