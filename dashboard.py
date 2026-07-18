@@ -122,8 +122,36 @@ def _write_encrypted(payload: dict, password: str, path: str) -> None:
         json.dump(envelope, f)
 
 
+def _read_encrypted(path: str, password: str) -> dict | None:
+    """既存の docs/data.enc を復号して payload を返す（無ければ/復号失敗なら None）。
+
+    --skip-report 等で今回レポートを生成しなかった場合に、前回の週報を
+    引き継いでダッシュボードから消えないようにするために使う。
+    """
+    from cryptography.exceptions import InvalidTag
+    from cryptography.hazmat.primitives.ciphers.aead import AESGCM
+
+    if not password or not os.path.exists(path):
+        return None
+    try:
+        with open(path, encoding="utf-8") as f:
+            envelope = json.load(f)
+        b64 = lambda s: base64.b64decode(s)  # noqa: E731
+        key = hashlib.pbkdf2_hmac(
+            "sha256", password.encode("utf-8"), b64(envelope["salt"]), envelope["iter"], dklen=32
+        )
+        plain = AESGCM(key).decrypt(b64(envelope["iv"]), b64(envelope["ct"]), None)
+        return json.loads(plain)
+    except (json.JSONDecodeError, KeyError, InvalidTag, ValueError):
+        return None
+
+
 def write_dashboard_data(
-    config: Config, data: CollectedData, history: pd.DataFrame, activity: pd.DataFrame | None = None
+    config: Config,
+    data: CollectedData,
+    history: pd.DataFrame,
+    activity: pd.DataFrame | None = None,
+    weekly_report: str | None = None,
 ) -> str:
     tz = config.timezone
     os.makedirs(DOCS_DIR, exist_ok=True)
@@ -196,13 +224,26 @@ def write_dashboard_data(
 
     password = os.environ.get("DASHBOARD_PASSWORD", "")
     if password:
-        # パスワード運用時: 暗号化データのみを配信し、平文は削除する
+        # 週報は暗号化データにのみ含める（平文には一切書き出さない）。
+        # 今回レポートを生成しなかった場合（--skip-report 等）は、前回の
+        # 暗号化データから引き継いでダッシュボード上の週報を消さないようにする。
+        report = weekly_report
+        report_generated_at = payload["generated_at"] if report else None
+        if report is None:
+            prev = _read_encrypted(enc_path, password)
+            if prev and prev.get("weekly_report"):
+                report = prev["weekly_report"]
+                report_generated_at = prev.get("weekly_report_generated_at") or prev.get("generated_at")
+        payload["weekly_report"] = report
+        payload["weekly_report_generated_at"] = report_generated_at
+
         _write_encrypted(payload, password, enc_path)
         if os.path.exists(plain_path):
             os.remove(plain_path)
         return enc_path
 
-    # パスワード未設定時（ローカル開発など）は従来どおり平文
+    # パスワード未設定時（ローカル開発など）は従来どおり平文。
+    # 週報は個人情報（メンバー名・発言の要約）を含みうるため、平文には含めない。
     with open(plain_path, "w", encoding="utf-8") as f:
         json.dump(payload, f, ensure_ascii=False, indent=2)
     if os.path.exists(enc_path):

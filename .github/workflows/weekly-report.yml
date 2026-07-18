@@ -72,15 +72,18 @@ jobs:
             ${{ inputs.until && format('--until {0}', inputs.until) || '' }} \
             ${{ inputs.skip_report == true && '--skip-report' || '' }}
 
-      - name: Render report to run summary
-        if: ${{ inputs.skip_report != true }}
+      - name: Report status to run summary
+        # 週報本文はここには出さない（ダッシュボードにのみ保存し、パスワード保護する）。
+        # ステータスのみ記載する。
         run: |
-          weekly=$(ls -t reports/*_weekly.md 2>/dev/null | head -1)
-          if [ -n "$weekly" ]; then
+          if [ "${{ inputs.skip_report }}" = "true" ]; then
+            echo "## ✅ 指標の更新が完了しました（レポート生成はスキップ）" >> "$GITHUB_STEP_SUMMARY"
+          else
             {
-              echo "## 📋 週報（$(basename "$weekly")）"
+              echo "## ✅ 週報の生成が完了しました"
               echo ""
-              cat "$weekly"
+              echo "週報の本文はリポジトリやこの実行ログには保存されません。"
+              echo "パスワード保護されたダッシュボードで確認してください。"
             } >> "$GITHUB_STEP_SUMMARY"
           fi
 
@@ -96,11 +99,3 @@ jobs:
             git commit -m "Update community metrics and dashboard (weekly report run)"
             git push origin "HEAD:${{ github.ref_name }}"
           fi
-
-      - name: Upload reports
-        if: ${{ inputs.skip_report != true }}
-        uses: actions/upload-artifact@v4
-        with:
-          name: weekly-report
-          path: reports/
-          if-no-files-found: ignore
